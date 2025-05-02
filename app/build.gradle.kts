@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace = "com.github.jesusmrs05.mcforgecommander"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.github.jesusmrs05.mcforgecommander"
