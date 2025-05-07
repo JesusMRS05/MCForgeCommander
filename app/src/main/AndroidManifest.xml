@@ -13,7 +13,7 @@
         android:theme="@style/Theme.MCForgeCommander"
         tools:targetApi="31">
         <activity
-            android:name=".activities.MainActivity"
+            android:name=".app.activities.MainActivity"
             android:exported="true"
             android:screenOrientation="landscape">
             <intent-filter>

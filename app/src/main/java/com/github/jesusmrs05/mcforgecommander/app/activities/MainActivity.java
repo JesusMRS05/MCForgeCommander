@@ -1,4 +1,4 @@
-package com.github.jesusmrs05.mcforgecommander.activities;
+package com.github.jesusmrs05.mcforgecommander.app.activities;
 
 import android.os.Bundle;
 
