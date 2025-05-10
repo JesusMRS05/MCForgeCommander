@@ -39,13 +39,13 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        startStream();
+        //startStream(); this whole function came from temp/tryingout because I will probably use it,
     }
 
     private void startStream() {
         streamThread = new Thread(() -> {
             try {
-                Socket socket = new Socket("10.0.2.2", 6000);  // o usa IP real si no es en emulador
+                Socket socket = new Socket("10.0.2.2", 6000);
                 InputStream is = socket.getInputStream();
                 output = new ObjectOutputStream(socket.getOutputStream());
                 ObjectInputStream objectInputStream = new ObjectInputStream(is);
@@ -61,8 +61,7 @@ public class MainActivity extends AppCompatActivity {
                     objectInputStream.readFully(imageBytes);
                     Log.d("ImageStream", "Read fully");
 
-                    // Decodificación eficiente
-                    Bitmap bitmap = decodeSampledBitmap(imageBytes, 426, 240); // 144p o 240p según tu resolución objetivo
+                    Bitmap bitmap = decodeSampledBitmap(imageBytes, 426, 240);
                     if (bitmap != null) {
                         Log.d("ImageStream", "Image decoded successfully");
                         runOnUiThread(() -> setImage(bitmap));
