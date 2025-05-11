@@ -1,9 +1,15 @@
 package com.github.jesusmrs05.mcforgecommander.app.activities;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 
 import androidx.activity.EdgeToEdge;
@@ -13,11 +19,17 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.github.jesusmrs05.mcforgecommander.R;
+import com.github.jesusmrs05.mcforgecommander.common.Command;
+import com.github.jesusmrs05.mcforgecommander.common.Instruction;
+import com.github.jesusmrs05.mcforgecommander.common.TouchCapture;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -25,6 +37,8 @@ public class MainActivity extends AppCompatActivity {
     private Thread streamThread;
     private ObjectOutputStream output;
     private Bitmap reusableBitmap = null;
+    private TouchCapture lastCapture = null;
+    private BlockingQueue<TouchCapture> touchCaptures = new LinkedBlockingQueue();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,36 +53,63 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        //startStream(); this whole function came from temp/tryingout because I will probably use it,
+        /*View touchCapture = findViewById(R.id.touchCapture);
+        touchCapture.setOnTouchListener((v, event) -> {
+            Log.d("MainActivity", "Touch event x: " + event.getX() + ", y: " + event.getY() + ", action: " + event.getAction());
+            TouchCapture touchCaptureObj = new TouchCapture(
+                    (int) event.getX(),
+                    (int) event.getY(),
+                    event.getAction(),
+                    lastCapture == null ? null : new TouchCapture(lastCapture),
+                    imageView.getWidth(),
+                    imageView.getHeight()
+            );
+            try {
+                enqueueTouchCapture(touchCaptureObj);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            lastCapture = touchCaptureObj;
+            return true; // Consume el evento para que no se propague
+        });
+        new Thread(() -> {
+            try {
+                while (true) {
+                    TouchCapture touchCaptureObj = takeTouchCapture();
+                    Command command = new Command(Instruction.SCREEN_TOUCH, touchCaptureObj);
+                    try {
+                        output.writeObject(command);
+                        output.flush();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }).start();
+        startStream();//this whole function came from temp/tryingout because I will probably use it,*/
     }
 
     private void startStream() {
         streamThread = new Thread(() -> {
             try {
-                Socket socket = new Socket("10.0.2.2", 6000);
+                Socket socket = new Socket("192.168.1.22", 6000);
                 InputStream is = socket.getInputStream();
                 output = new ObjectOutputStream(socket.getOutputStream());
                 ObjectInputStream objectInputStream = new ObjectInputStream(is);
 
                 while (!Thread.currentThread().isInterrupted()) {
-                    Log.d("ImageStream", "Waiting for length...");
                     int length = objectInputStream.readInt();
-                    Log.d("ImageStream", "Received length: " + length);
                     if (length <= 0) break;
 
                     byte[] imageBytes = new byte[length];
-                    Log.d("ImageStream", "About to read fully...");
                     objectInputStream.readFully(imageBytes);
-                    Log.d("ImageStream", "Read fully");
 
                     Bitmap bitmap = decodeSampledBitmap(imageBytes, 426, 240);
                     if (bitmap != null) {
-                        Log.d("ImageStream", "Image decoded successfully");
                         runOnUiThread(() -> setImage(bitmap));
-                    } else {
-                        Log.d("ImageStream", "Failed to decode image");
                     }
-
                 }
 
                 objectInputStream.close();
@@ -136,5 +177,13 @@ public class MainActivity extends AppCompatActivity {
         if (reusableBitmap != null && !reusableBitmap.isRecycled()) {
             reusableBitmap.recycle();
         }
+    }
+
+    public void enqueueTouchCapture(TouchCapture touchCapture) throws InterruptedException {
+        touchCaptures.put(touchCapture);
+    }
+
+    public TouchCapture takeTouchCapture() throws InterruptedException {
+        return touchCaptures.take();
     }
 }
