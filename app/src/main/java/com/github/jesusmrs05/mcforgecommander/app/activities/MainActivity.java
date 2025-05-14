@@ -11,6 +11,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -39,6 +40,9 @@ public class MainActivity extends AppCompatActivity {
     private Bitmap reusableBitmap = null;
     private TouchCapture lastCapture = null;
     private BlockingQueue<TouchCapture> touchCaptures = new LinkedBlockingQueue();
+    private LinearLayout drawer;
+    private ImageButton btnMenu;
+    private final boolean[] drawerOpen = {false};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +55,20 @@ public class MainActivity extends AppCompatActivity {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
+        });
+        final int drawerWidth = 240; // en dp
+        final float density = getResources().getDisplayMetrics().density;
+        final float drawerPx = drawerWidth * density;
+        drawer = findViewById(R.id.drawerMenu);
+        btnMenu = findViewById(R.id.btnMenu);
+        btnMenu.setOnClickListener(v -> {
+            float targetX = drawerOpen[0] ? -drawerPx : 0;
+            float buttonTargetX = drawerOpen[0] ? 0 : drawerPx;
+
+            drawer.animate().translationX(targetX).setDuration(300).start();
+            btnMenu.animate().translationX(buttonTargetX).setDuration(300).start();
+
+            drawerOpen[0] = !drawerOpen[0];
         });
 
         /*View touchCapture = findViewById(R.id.touchCapture);
