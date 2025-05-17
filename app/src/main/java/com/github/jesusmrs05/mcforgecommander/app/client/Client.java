@@ -6,13 +6,14 @@ import com.github.jesusmrs05.mcforgecommander.app.activities.MainActivity;
 import com.github.jesusmrs05.mcforgecommander.app.client.threads.GUIStatusThread;
 import com.github.jesusmrs05.mcforgecommander.app.client.threads.ImageThread;
 import com.github.jesusmrs05.mcforgecommander.app.client.threads.ProducerThread;
+import com.github.jesusmrs05.mcforgecommander.app.client.threads.TouchCaptureSenderThread;
 import com.github.jesusmrs05.mcforgecommander.common.Command;
 import com.github.jesusmrs05.mcforgecommander.common.ServerPacket;
+import com.github.jesusmrs05.mcforgecommander.common.TouchCapture;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -20,7 +21,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class Client {
-    private static final int MAX_QUEUE_SIZE = 10;
+    private static final int MAX_QUEUE_SIZE = 100;
     private static WeakReference<MainActivity> mainActivityRef;
     private static Client client;
     private Socket socket;
@@ -28,9 +29,11 @@ public class Client {
     private ObjectInputStream input;
     private BlockingQueue<byte[]> imageQueue = new LinkedBlockingQueue<>(MAX_QUEUE_SIZE);
     private BlockingQueue<ServerPacket.GUIStatus> guiStatusQueue = new LinkedBlockingQueue<>(MAX_QUEUE_SIZE);
+    public BlockingQueue<TouchCapture> touchCaptures = new LinkedBlockingQueue<>(MAX_QUEUE_SIZE);
     private GUIStatusThread guiStatusThread;
     private ImageThread imageThread;
     private ProducerThread producerThread;
+    private TouchCaptureSenderThread touchCaptureSenderThread;
 
 
     public static synchronized Client getInstance() {
@@ -52,11 +55,13 @@ public class Client {
                     producerThread = new ProducerThread();
                     guiStatusThread = new GUIStatusThread();
                     imageThread = new ImageThread(mainActivityRef.get());
+                    touchCaptureSenderThread = new TouchCaptureSenderThread();
+                    touchCaptureSenderThread.start();
                     producerThread.start();
                     guiStatusThread.start();
                     imageThread.start();
                 }
-            } catch (UnknownHostException e) {
+            } catch (UnknownHostException uhe) {
                 try {
                     MainActivity mainActivity = mainActivityRef.get();
                     mainActivity.runOnUiThread(() -> {
@@ -67,13 +72,13 @@ public class Client {
                     });
                 } catch (NullPointerException npe) {
                 }
-            } catch (IOException e) {
+            } catch (IOException ioe) {
                 try {
                     MainActivity mainActivity = mainActivityRef.get();
                     mainActivity.runOnUiThread(() -> {
                         AlertDialog alertDialog = new AlertDialog.Builder(mainActivityRef.get()).create();
                         alertDialog.setTitle("Error");
-                        alertDialog.setMessage("Connection Failure: " + e.getMessage());
+                        alertDialog.setMessage("Connection Failure: " + ioe.getMessage());
                         alertDialog.show();
                     });
                 } catch (NullPointerException npe) {
@@ -119,5 +124,13 @@ public class Client {
 
     public ServerPacket.GUIStatus takeGUIStatus() throws InterruptedException {
         return guiStatusQueue.take();
+    }
+
+    public void enqueueTouchCapture(TouchCapture touchCapture) throws InterruptedException {
+        touchCaptures.put(touchCapture);
+    }
+
+    public TouchCapture takeTouchCapture() throws InterruptedException {
+        return touchCaptures.take();
     }
 }

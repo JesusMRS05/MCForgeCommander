@@ -41,10 +41,10 @@ public class MainActivity extends AppCompatActivity {
     public ObjectOutputStream output;
     public Bitmap reusableBitmap = null;
     public TouchCapture lastCapture = null;
-    public BlockingQueue<TouchCapture> touchCaptures = new LinkedBlockingQueue();
     public LinearLayout drawer;
     public ImageButton btnMenu;
     public final boolean[] drawerOpen = {false};
+    private Client client;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +58,8 @@ public class MainActivity extends AppCompatActivity {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
+        Client.setMainActivity(this);
+        client = Client.getInstance();
         final int drawerWidth = 240; // en dp
         final float density = getResources().getDisplayMetrics().density;
         final float drawerPx = drawerWidth * density;
@@ -73,9 +75,8 @@ public class MainActivity extends AppCompatActivity {
             drawerOpen[0] = !drawerOpen[0];
         });
 
-        /*View touchCapture = findViewById(R.id.touchCapture);
+        View touchCapture = findViewById(R.id.touchCapture);
         touchCapture.setOnTouchListener((v, event) -> {
-            Log.d("MainActivity", "Touch event x: " + event.getX() + ", y: " + event.getY() + ", action: " + event.getAction());
             TouchCapture touchCaptureObj = new TouchCapture(
                     (int) event.getX(),
                     (int) event.getY(),
@@ -85,31 +86,15 @@ public class MainActivity extends AppCompatActivity {
                     imageView.getHeight()
             );
             try {
-                enqueueTouchCapture(touchCaptureObj);
+                client.enqueueTouchCapture(touchCaptureObj);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
             lastCapture = touchCaptureObj;
-            return true; // Consume el evento para que no se propague
+            return true;
         });
-        new Thread(() -> {
-            try {
-                while (true) {
-                    TouchCapture touchCaptureObj = takeTouchCapture();
-                    Command command = new Command(Instruction.SCREEN_TOUCH, touchCaptureObj);
-                    try {
-                        output.writeObject(command);
-                        output.flush();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }).start();*/
-        Client.setMainActivity(this);
-        Client client = Client.getInstance();
+
+
         client.connect("192.168.1.22", 6000, "s1C$BlmPGw4Fc87R");
     }
 
@@ -130,13 +115,5 @@ public class MainActivity extends AppCompatActivity {
         if (reusableBitmap != null && !reusableBitmap.isRecycled()) {
             reusableBitmap.recycle();
         }
-    }
-
-    public void enqueueTouchCapture(TouchCapture touchCapture) throws InterruptedException {
-        touchCaptures.put(touchCapture);
-    }
-
-    public TouchCapture takeTouchCapture() throws InterruptedException {
-        return touchCaptures.take();
     }
 }
