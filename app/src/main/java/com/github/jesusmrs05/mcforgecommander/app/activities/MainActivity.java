@@ -20,8 +20,10 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.github.jesusmrs05.mcforgecommander.R;
+import com.github.jesusmrs05.mcforgecommander.app.client.Client;
 import com.github.jesusmrs05.mcforgecommander.common.Command;
 import com.github.jesusmrs05.mcforgecommander.common.Instruction;
+import com.github.jesusmrs05.mcforgecommander.common.ServerPacket;
 import com.github.jesusmrs05.mcforgecommander.common.TouchCapture;
 
 import java.io.IOException;
@@ -34,15 +36,15 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class MainActivity extends AppCompatActivity {
 
-    private ImageView imageView;
-    private Thread streamThread;
-    private ObjectOutputStream output;
-    private Bitmap reusableBitmap = null;
-    private TouchCapture lastCapture = null;
-    private BlockingQueue<TouchCapture> touchCaptures = new LinkedBlockingQueue();
-    private LinearLayout drawer;
-    private ImageButton btnMenu;
-    private final boolean[] drawerOpen = {false};
+    public ImageView imageView;
+    public Thread streamThread;
+    public ObjectOutputStream output;
+    public Bitmap reusableBitmap = null;
+    public TouchCapture lastCapture = null;
+    public BlockingQueue<TouchCapture> touchCaptures = new LinkedBlockingQueue();
+    public LinearLayout drawer;
+    public ImageButton btnMenu;
+    public final boolean[] drawerOpen = {false};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -105,86 +107,19 @@ public class MainActivity extends AppCompatActivity {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-        }).start();
-        startStream();//this whole function came from temp/tryingout because I will probably use it,*/
+        }).start();*/
+        Client.setMainActivity(this);
+        Client client = Client.getInstance();
+        client.connect("192.168.1.22", 6000, "s1C$BlmPGw4Fc87R");
     }
 
-    private void startStream() {
-        streamThread = new Thread(() -> {
-            try {
-                Socket socket = new Socket("192.168.1.22", 6000);
-                InputStream is = socket.getInputStream();
-                output = new ObjectOutputStream(socket.getOutputStream());
-                ObjectInputStream objectInputStream = new ObjectInputStream(is);
-
-                while (!Thread.currentThread().isInterrupted()) {
-                    int length = objectInputStream.readInt();
-                    if (length <= 0) break;
-
-                    byte[] imageBytes = new byte[length];
-                    objectInputStream.readFully(imageBytes);
-
-                    Bitmap bitmap = decodeSampledBitmap(imageBytes, 426, 240);
-                    if (bitmap != null) {
-                        runOnUiThread(() -> setImage(bitmap));
-                    }
-                }
-
-                objectInputStream.close();
-                socket.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
-
-        streamThread.start();
-    }
-
-    // Método para establecer la imagen de manera eficiente
-    private void setImage(Bitmap bitmap) {
+    public void setImage(Bitmap bitmap) {
         // Reciclar bitmap anterior si ya existe
         if (reusableBitmap != null && !reusableBitmap.isRecycled()) {
             reusableBitmap.recycle();
         }
         reusableBitmap = bitmap;
         imageView.setImageBitmap(reusableBitmap);
-    }
-
-    // Decodificación eficiente de la imagen con inSampleSize
-    private Bitmap decodeSampledBitmap(byte[] imageBytes, int reqWidth, int reqHeight) {
-        // Primero, decodificamos solo las dimensiones de la imagen (sin cargarla completamente)
-        BitmapFactory.Options options = new BitmapFactory.Options();
-        options.inJustDecodeBounds = true;
-        BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length, options);
-
-        // Calculamos inSampleSize para reducir el tamaño de la imagen
-        options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
-
-        // Ahora decodificamos la imagen con el tamaño ajustado
-        options.inJustDecodeBounds = false;
-        options.inPreferredConfig = Bitmap.Config.RGB_565;  // Usamos RGB_565 para ahorrar memoria
-
-        return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length, options);
-    }
-
-    // Método para calcular el tamaño de la muestra
-    private int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
-        // Dimensiones originales de la imagen
-        final int height = options.outHeight;
-        final int width = options.outWidth;
-        int inSampleSize = 1;
-
-        if (height > reqHeight || width > reqWidth) {
-            final int halfHeight = height / 2;
-            final int halfWidth = width / 2;
-
-            // Calculamos el mayor inSampleSize que mantiene ambas dimensiones mayores que las requeridas
-            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
-                inSampleSize *= 2;
-            }
-        }
-
-        return inSampleSize;
     }
 
     @Override
