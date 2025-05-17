@@ -3,8 +3,17 @@ package com.github.jesusmrs05.mcforgecommander.app.activities;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.os.Bundle;
+import android.text.Layout;
+import android.text.StaticLayout;
+import android.text.TextPaint;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -15,6 +24,7 @@ import android.widget.LinearLayout;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -60,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
         });
         Client.setMainActivity(this);
         client = Client.getInstance();
-        final int drawerWidth = 240; // en dp
+        final int drawerWidth = 240; // in dp
         final float density = getResources().getDisplayMetrics().density;
         final float drawerPx = drawerWidth * density;
         drawer = findViewById(R.id.drawerMenu);
@@ -94,12 +104,13 @@ public class MainActivity extends AppCompatActivity {
             return true;
         });
 
+        Bitmap defaultImage = createMultilineTextImageFullScreen(this, "Disconnected.\nOpen the leftside menu to add connections.", 18, Color.WHITE, 0x2B2B2B);
+        setImage(defaultImage);
 
         client.connect("192.168.1.22", 6000, "s1C$BlmPGw4Fc87R");
     }
 
     public void setImage(Bitmap bitmap) {
-        // Reciclar bitmap anterior si ya existe
         if (reusableBitmap != null && !reusableBitmap.isRecycled()) {
             reusableBitmap.recycle();
         }
@@ -111,9 +122,47 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (streamThread != null) streamThread.interrupt();
-        // Liberar recursos de bitmap si ya no se necesita
         if (reusableBitmap != null && !reusableBitmap.isRecycled()) {
             reusableBitmap.recycle();
         }
+    }
+
+    public Bitmap createMultilineTextImageFullScreen(Context context, String text, int textSizeSp, int textColor, int bgColor) {
+        DisplayMetrics metrics = context.getResources().getDisplayMetrics();
+        int width = metrics.widthPixels;
+        int height = metrics.heightPixels;
+
+        float textSizePx = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_SP,
+                textSizeSp,
+                metrics
+        );
+
+        Typeface typeface = ResourcesCompat.getFont(context, R.font.minecraftia_regular);
+
+        TextPaint textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+        textPaint.setColor(textColor);
+        textPaint.setTextSize(textSizePx);
+        textPaint.setTypeface(typeface);
+
+        StaticLayout staticLayout = StaticLayout.Builder.obtain(text, 0, text.length(), textPaint, width)
+                .setAlignment(Layout.Alignment.ALIGN_CENTER)
+                .setLineSpacing(0, 1)
+                .setIncludePad(false)
+                .build();
+
+        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        canvas.drawColor(bgColor);
+
+        int textHeight = staticLayout.getHeight();
+        float textY = (height - textHeight) / 2f;
+
+        canvas.save();
+        canvas.translate(0, textY);
+        staticLayout.draw(canvas);
+        canvas.restore();
+
+        return bitmap;
     }
 }
