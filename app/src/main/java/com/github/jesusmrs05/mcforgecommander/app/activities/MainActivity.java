@@ -28,8 +28,14 @@ import androidx.core.content.res.ResourcesCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.github.jesusmrs05.mcforgecommander.R;
+import com.github.jesusmrs05.mcforgecommander.app.ConnectionInfo;
+import com.github.jesusmrs05.mcforgecommander.app.ConnectionInfoAdapter;
+import com.github.jesusmrs05.mcforgecommander.app.ModifyConnectionInfoDialog;
+import com.github.jesusmrs05.mcforgecommander.app.SecurePreferencesHelper;
 import com.github.jesusmrs05.mcforgecommander.app.client.Client;
 import com.github.jesusmrs05.mcforgecommander.common.Command;
 import com.github.jesusmrs05.mcforgecommander.common.Instruction;
@@ -41,6 +47,7 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -52,9 +59,12 @@ public class MainActivity extends AppCompatActivity {
     public Bitmap reusableBitmap = null;
     public TouchCapture lastCapture = null;
     public LinearLayout drawer;
-    public ImageButton btnMenu;
+    public ImageButton btnMenu,btnAddConnection;
     public final boolean[] drawerOpen = {false};
     private Client client;
+    private List<ConnectionInfo> connectionInfos;
+    private RecyclerView rvConnections;
+    private ConnectionInfoAdapter connectionInfoAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,8 +83,24 @@ public class MainActivity extends AppCompatActivity {
         final int drawerWidth = 240; // in dp
         final float density = getResources().getDisplayMetrics().density;
         final float drawerPx = drawerWidth * density;
+        connectionInfos = SecurePreferencesHelper.loadConnections(this);
+        connectionInfoAdapter = new ConnectionInfoAdapter(connectionInfos);
+        rvConnections = findViewById(R.id.rvConnections);
+        rvConnections.setAdapter(connectionInfoAdapter);
+        rvConnections.setLayoutManager(new LinearLayoutManager(this));
         drawer = findViewById(R.id.drawerMenu);
         btnMenu = findViewById(R.id.btnMenu);
+        btnAddConnection = findViewById(R.id.btnAddConnection);
+        btnAddConnection.setOnClickListener(v -> {
+            ConnectionInfo connectionInfo = new ConnectionInfo();
+            Runnable callback = () -> {
+                connectionInfos.add(connectionInfo);
+                SecurePreferencesHelper.saveConnections(this, connectionInfos);
+                connectionInfoAdapter.notifyItemInserted(connectionInfos.size() - 1);
+            };
+            ModifyConnectionInfoDialog dialog = new ModifyConnectionInfoDialog(this, connectionInfo, callback);
+            dialog.show();
+        });
         btnMenu.setOnClickListener(v -> {
             float targetX = drawerOpen[0] ? -drawerPx : 0;
             float buttonTargetX = drawerOpen[0] ? 0 : drawerPx;
@@ -107,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
         Bitmap defaultImage = createMultilineTextImageFullScreen(this, "Disconnected.\nOpen the leftside menu to add connections.", 18, Color.WHITE, 0x2B2B2B);
         setImage(defaultImage);
 
-        client.connect("192.168.1.22", 6000, "s1C$BlmPGw4Fc87R");
+        //client.connect("192.168.1.22", 6000, "s1C$BlmPGw4Fc87R");
     }
 
     public void setImage(Bitmap bitmap) {

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:paddingStart="8dp">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingEnd="16dp"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true">
+
+        <TextView
+            android:id="@+id/tvHost"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Host: 255.255.255.255"
+            android:fontFamily="@font/minecraftia_regular"
+            android:textSize="12sp"
+            android:textColor="@color/black"/>
+
+        <TextView
+            android:id="@+id/tvPort"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Port: 65535"
+            android:fontFamily="@font/minecraftia_regular"
+            android:textSize="12sp"
+            android:textColor="@color/black"/>
+
+        <TextView
+            android:id="@+id/tvConnectionStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Status: Disconnected"
+            android:fontFamily="@font/minecraftia_regular"
+            android:textSize="12sp"
+            android:textColor="@android:color/holo_red_light"/>
+    </LinearLayout>
+    <!--58-->
+    <ImageButton
+        android:id="@+id/btnConnect"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:background="@android:color/transparent"
+        android:scaleType="fitXY"
+        android:src="@drawable/minecraft_frame_right_arrow"
+        android:translationX="0dp"
+        android:foreground="?attr/selectableItemBackground"
+        android:layout_gravity="center"/>
+</LinearLayout>

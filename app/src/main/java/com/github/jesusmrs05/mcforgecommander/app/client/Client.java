@@ -1,7 +1,13 @@
 package com.github.jesusmrs05.mcforgecommander.app.client;
 
 import android.app.AlertDialog;
+import android.graphics.Typeface;
+import android.widget.Button;
+import android.widget.TextView;
 
+import androidx.core.content.res.ResourcesCompat;
+
+import com.github.jesusmrs05.mcforgecommander.R;
 import com.github.jesusmrs05.mcforgecommander.app.activities.MainActivity;
 import com.github.jesusmrs05.mcforgecommander.app.client.threads.GUIStatusThread;
 import com.github.jesusmrs05.mcforgecommander.app.client.threads.ImageThread;
@@ -15,12 +21,15 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.ref.WeakReference;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class Client {
+    private static final int TIMEOUT = 10000; // in ms
     private static final int MAX_QUEUE_SIZE = 100;
     private static WeakReference<MainActivity> mainActivityRef;
     private static Client client;
@@ -46,12 +55,13 @@ public class Client {
     public void connect(String host, int port, String password) {
         new Thread(() -> {
             try {
-                socket = new Socket(host, port);
+                Socket socket = new Socket();
+                socket.connect(new InetSocketAddress(host, port), TIMEOUT);
                 input = new ObjectInputStream(socket.getInputStream());
                 output = new ObjectOutputStream(socket.getOutputStream());
                 output.writeUTF(password);
                 output.flush();
-                if(input.readUTF().equalsIgnoreCase("Welcome")){
+                if (input.readUTF().equalsIgnoreCase("Welcome")) {
                     producerThread = new ProducerThread();
                     guiStatusThread = new GUIStatusThread();
                     imageThread = new ImageThread(mainActivityRef.get());
@@ -62,28 +72,13 @@ public class Client {
                     imageThread.start();
                 }
             } catch (UnknownHostException uhe) {
-                try {
-                    MainActivity mainActivity = mainActivityRef.get();
-                    mainActivity.runOnUiThread(() -> {
-                        AlertDialog alertDialog = new AlertDialog.Builder(mainActivityRef.get()).create();
-                        alertDialog.setTitle("Error");
-                        alertDialog.setMessage("Unknown host");
-                        alertDialog.show();
-                    });
-                } catch (NullPointerException npe) {
-                }
+                showAlertDialog("Connection Error", "Unknown host");
+            } catch (SocketTimeoutException stoe) {
+                showAlertDialog("Connection Error", "Connection Timed Out");
             } catch (IOException ioe) {
-                try {
-                    MainActivity mainActivity = mainActivityRef.get();
-                    mainActivity.runOnUiThread(() -> {
-                        AlertDialog alertDialog = new AlertDialog.Builder(mainActivityRef.get()).create();
-                        alertDialog.setTitle("Error");
-                        alertDialog.setMessage("Connection Failure: " + ioe.getMessage());
-                        alertDialog.show();
-                    });
-                } catch (NullPointerException npe) {
-                }
+                showAlertDialog("Connection Error", "Connection Failure: " + ioe.getMessage());
             }
+
         }).start();
     }
 
@@ -100,7 +95,7 @@ public class Client {
         mainActivityRef = new WeakReference<>(mainActivity);
     }
 
-    public ServerPacket getServerPacket() throws IOException{
+    public ServerPacket getServerPacket() throws IOException {
         ServerPacket serverPacket;
         try {
             serverPacket = (ServerPacket) input.readObject();
@@ -132,5 +127,38 @@ public class Client {
 
     public TouchCapture takeTouchCapture() throws InterruptedException {
         return touchCaptures.take();
+    }
+
+    private void showAlertDialog(String title, String message) {
+        MainActivity mainActivity = mainActivityRef.get();
+        if (mainActivity == null) return;
+
+        mainActivity.runOnUiThread(() -> {
+            AlertDialog alertDialog = new AlertDialog.Builder(mainActivity)
+                    .setTitle(title)
+                    .setMessage(message)
+                    .setPositiveButton("Accept", (dialog, which) -> dialog.dismiss())
+                    .create();
+
+            alertDialog.show();
+
+            Typeface minecraftTypeface = ResourcesCompat.getFont(mainActivity, R.font.minecraftia_regular);
+
+            int textViewId = mainActivity.getResources().getIdentifier("alertTitle", "id", "android");
+            TextView dialogTitle = alertDialog.findViewById(textViewId);
+            if (dialogTitle != null && minecraftTypeface != null) {
+                dialogTitle.setTypeface(minecraftTypeface);
+            }
+
+            TextView messageView = alertDialog.findViewById(android.R.id.message);
+            if (messageView != null && minecraftTypeface != null) {
+                messageView.setTypeface(minecraftTypeface);
+            }
+
+            Button positiveButton = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            if (positiveButton != null && minecraftTypeface != null) {
+                positiveButton.setTypeface(minecraftTypeface);
+            }
+        });
     }
 }

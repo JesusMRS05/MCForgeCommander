@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/scrollView"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:descendantFocusability="beforeDescendants"
+    android:fillViewport="true"
+    android:isScrollContainer="true"
+    android:overScrollMode="never"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/white"
+        android:fitsSystemWindows="true"
+        android:orientation="vertical"
+        android:paddingLeft="32dp"
+        android:paddingRight="32dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:fontFamily="@font/minecraftia_regular"
+            android:gravity="center_horizontal"
+            android:text="Connection Info"
+            android:textColor="@color/black"
+            android:textSize="32sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="24dp"
+            android:paddingBottom="32dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:fontFamily="@font/minecraftia_regular"
+                android:gravity="center_vertical"
+                android:text="Host:"
+                android:textColor="@color/black"
+                android:textSize="24sp" />
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/tietHost"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="@font/minecraftia_regular"
+                android:gravity="end"
+                android:imeOptions="flagNoExtractUi"
+                android:inputType="text"
+                android:textColor="@color/black" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="24dp"
+            android:paddingBottom="32dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:fontFamily="@font/minecraftia_regular"
+                android:gravity="center_vertical"
+                android:text="Port:"
+                android:textColor="@color/black"
+                android:textSize="24sp" />
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/tietPort"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="@font/minecraftia_regular"
+                android:gravity="end"
+                android:imeOptions="flagNoExtractUi"
+                android:inputType="number"
+                android:maxLength="5"
+                android:textColor="@color/black" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingStart="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:fontFamily="@font/minecraftia_regular"
+                android:gravity="center_vertical"
+                android:text="Pass:"
+                android:textColor="@color/black"
+                android:textSize="24sp" />
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/tietPass"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="@font/minecraftia_regular"
+                android:gravity="end"
+                android:imeOptions="flagNoExtractUi"
+                android:inputType="textPassword"
+                android:textColor="@color/black" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:weightSum="2">
+
+            <TextView
+                android:id="@+id/btnCancel"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:fontFamily="@font/minecraftia_regular"
+                android:gravity="center"
+                android:padding="16dp"
+                android:text="Cancel"
+                android:textColor="#7621f0"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/btnAccept"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:fontFamily="@font/minecraftia_regular"
+                android:gravity="center"
+                android:padding="16dp"
+                android:text="Accept"
+                android:textColor="#7621f0"
+                android:textSize="16sp" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
