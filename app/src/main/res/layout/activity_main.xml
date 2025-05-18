@@ -19,10 +19,10 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:background="@android:color/transparent"
-        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/overlayLayout"
@@ -49,9 +49,9 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:background="@android:color/transparent"
+                android:foreground="?attr/selectableItemBackground"
                 android:scaleType="fitXY"
-                android:src="@drawable/minecraft_frame_chat"
-                android:foreground="?attr/selectableItemBackground"/>
+                android:src="@drawable/minecraft_frame_chat" />
 
             <View
                 android:layout_width="4dp"
@@ -62,78 +62,233 @@
                 android:layout_width="24dp"
                 android:layout_height="24dp"
                 android:background="@android:color/transparent"
+                android:foreground="?attr/selectableItemBackground"
                 android:scaleType="fitXY"
-                android:src="@drawable/minecraft_frame_inventory"
-                android:foreground="?attr/selectableItemBackground"/>
+                android:src="@drawable/minecraft_frame_inventory" />
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!--make translationX positive during development to see your changes in the editor-->
     <LinearLayout
-        android:translationX="-240dp"
         android:id="@+id/drawerMenu"
         android:layout_width="240dp"
         android:layout_height="match_parent"
-        android:orientation="vertical"
         android:background="@android:color/white"
-        app:layout_constraintTop_toTopOf="parent"
+        android:clickable="true"
+        android:elevation="10dp"
+        android:focusable="true"
+        android:orientation="vertical"
+        android:translationX="-240dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        android:elevation="10dp"
-        android:clickable="true"
-        android:focusable="true">
+        app:layout_constraintTop_toTopOf="parent">
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Connections"
-            android:textColor="@android:color/black"
-            android:textSize="18sp"
+            android:layout_gravity="center_horizontal"
             android:fontFamily="@font/minecraftia_regular"
             android:padding="8dp"
-            android:layout_gravity="center_horizontal" />
+            android:text="Connections"
+            android:textColor="@android:color/black"
+            android:textSize="18sp" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvConnections"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:layout_marginBottom="12dp"/>
+            android:layout_marginBottom="12dp"
+            android:layout_weight="1" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Add Connection"
-            android:textColor="@android:color/black"
-            android:textSize="12sp"
+            android:layout_gravity="center_horizontal"
             android:fontFamily="@font/minecraftia_regular"
             android:padding="4dp"
-            android:layout_gravity="center_horizontal" />
+            android:text="Add Connection"
+            android:textColor="@android:color/black"
+            android:textSize="12sp" />
 
         <ImageButton
             android:id="@+id/btnAddConnection"
             android:layout_width="44dp"
             android:layout_height="44dp"
-            android:background="@android:color/transparent"
-            android:scaleType="fitXY"
-            android:src="@drawable/minecraft_frame_plus"
-            android:foreground="?attr/selectableItemBackground"
             android:layout_gravity="center"
-            android:layout_marginBottom="16dp"/>
+            android:layout_marginBottom="16dp"
+            android:background="@android:color/transparent"
+            android:foreground="?attr/selectableItemBackground"
+            android:scaleType="fitXY"
+            android:src="@drawable/minecraft_frame_plus" />
     </LinearLayout>
 
     <ImageButton
         android:id="@+id/btnMenu"
         android:layout_width="44dp"
         android:layout_height="44dp"
+        android:layout_margin="16dp"
         android:background="@android:color/transparent"
+        android:foreground="?attr/selectableItemBackground"
         android:scaleType="fitXY"
         android:src="@drawable/minecraft_frame_burger"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
         android:translationX="0dp"
-        android:layout_margin="16dp"
-        android:foreground="?attr/selectableItemBackground"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_margin="16dp">
 
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/btnTopLeft"
+                android:layout_width="@dimen/dPad_small_button_size"
+                android:layout_height="@dimen/dPad_small_button_size"
+                android:layout_gravity="end|bottom"
+                android:layout_marginStart="@dimen/dPad_button_diff"
+                android:background="@android:color/transparent"
+                android:foreground="?attr/selectableItemBackground"
+                android:scaleType="fitXY"
+                android:src="@drawable/minecraft_frame_up_left_arrow"
+                android:translationX="0dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <ImageButton
+                android:id="@+id/btnTop"
+                android:layout_width="@dimen/dPad_button_size"
+                android:layout_height="@dimen/dPad_button_size"
+                android:background="@android:color/transparent"
+                android:foreground="?attr/selectableItemBackground"
+                android:scaleType="fitXY"
+                android:src="@drawable/minecraft_frame_up_arrow"
+                android:translationX="0dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:layout_marginStart="@dimen/dPad_padding"/>
+
+            <ImageButton
+                android:id="@+id/btnTopRight"
+                android:layout_width="@dimen/dPad_small_button_size"
+                android:layout_height="@dimen/dPad_small_button_size"
+                android:layout_gravity="end|bottom"
+                android:layout_marginEnd="@dimen/dPad_button_diff"
+                android:background="@android:color/transparent"
+                android:foreground="?attr/selectableItemBackground"
+                android:scaleType="fitXY"
+                android:src="@drawable/minecraft_frame_up_right_arrow"
+                android:translationX="0dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:layout_marginStart="@dimen/dPad_padding"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            >
+
+            <ImageButton
+                android:id="@+id/btnLeft"
+                android:layout_width="@dimen/dPad_button_size"
+                android:layout_height="@dimen/dPad_button_size"
+                android:background="@android:color/transparent"
+                android:foreground="?attr/selectableItemBackground"
+                android:scaleType="fitXY"
+                android:src="@drawable/minecraft_frame_left_arrow"
+                android:translationX="0dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:layout_marginTop="@dimen/dPad_padding"/>
+
+            <ImageButton
+                android:id="@+id/btnShift"
+                android:layout_width="@dimen/dPad_button_size"
+                android:layout_height="@dimen/dPad_button_size"
+                android:background="@android:color/transparent"
+                android:foreground="?attr/selectableItemBackground"
+                android:scaleType="fitXY"
+                android:src="@drawable/minecraft_frame_shift"
+                android:translationX="0dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:layout_marginTop="@dimen/dPad_padding"
+                android:layout_marginStart="@dimen/dPad_padding"/>
+
+            <ImageButton
+                android:id="@+id/btnRight"
+                android:layout_width="@dimen/dPad_button_size"
+                android:layout_height="@dimen/dPad_button_size"
+                android:background="@android:color/transparent"
+                android:foreground="?attr/selectableItemBackground"
+                android:scaleType="fitXY"
+                android:src="@drawable/minecraft_frame_right_arrow"
+                android:translationX="0dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:layout_marginTop="@dimen/dPad_padding"
+                android:layout_marginStart="@dimen/dPad_padding"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/btnBottomLeft"
+                android:layout_width="@dimen/dPad_small_button_size"
+                android:layout_height="@dimen/dPad_small_button_size"
+                android:layout_gravity="end|top"
+                android:layout_marginStart="@dimen/dPad_button_diff"
+                android:background="@android:color/transparent"
+                android:foreground="?attr/selectableItemBackground"
+                android:scaleType="fitXY"
+                android:src="@drawable/minecraft_frame_down_left_arrow"
+                android:translationX="0dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:layout_marginTop="@dimen/dPad_padding" />
+
+            <ImageButton
+                android:id="@+id/btnBottom"
+                android:layout_width="@dimen/dPad_button_size"
+                android:layout_height="@dimen/dPad_button_size"
+                android:background="@android:color/transparent"
+                android:foreground="?attr/selectableItemBackground"
+                android:scaleType="fitXY"
+                android:src="@drawable/minecraft_frame_down_arrow"
+                android:translationX="0dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:layout_marginTop="@dimen/dPad_padding"
+                android:layout_marginStart="@dimen/dPad_padding"/>
+
+            <ImageButton
+                android:id="@+id/btnBottomRight"
+                android:layout_width="@dimen/dPad_small_button_size"
+                android:layout_height="@dimen/dPad_small_button_size"
+                android:layout_gravity="end|top"
+                android:layout_marginEnd="@dimen/dPad_button_diff"
+                android:background="@android:color/transparent"
+                android:foreground="?attr/selectableItemBackground"
+                android:scaleType="fitXY"
+                android:src="@drawable/minecraft_frame_down_right_arrow"
+                android:translationX="0dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                android:layout_marginTop="@dimen/dPad_padding"
+                android:layout_marginStart="@dimen/dPad_padding"/>
+        </LinearLayout>
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
