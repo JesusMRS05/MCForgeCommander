@@ -5,6 +5,7 @@ import java.io.Serializable;
 public class TouchCapture implements Serializable {
     public static final int MAX_DEPTH = 5;
 
+    private int pointerId;
     private int x;
     private int y;
     private int action;
@@ -12,13 +13,14 @@ public class TouchCapture implements Serializable {
     private int inputWidth;
     private int inputHeight;
 
-    public TouchCapture(int x, int y, int action, TouchCapture lastCapture, int inputWidth, int inputHeight) {
+    public TouchCapture(int pointerId, int x, int y, int action, TouchCapture lastCapture, int inputWidth, int inputHeight) {
         this.x = x;
         this.y = y;
         this.action = action;
         this.lastCapture = lastCapture;
         this.inputWidth = inputWidth;
         this.inputHeight = inputHeight;
+        this.pointerId = pointerId;
         try {
             TouchCapture lastLastCapture = this.lastCapture;
             for (int i = 0; i < MAX_DEPTH; i++) {

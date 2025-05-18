@@ -15,6 +15,7 @@ import android.text.StaticLayout;
 import android.text.TextPaint;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.util.SparseArray;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
@@ -197,112 +198,165 @@ public class MainActivity extends AppCompatActivity {
     private long lastShiftClickTime = 0; // Variable de clase
     private boolean isShiftLocked = false;
 
+    // Guardamos la relación dedo->botón
+    private final SparseArray<ImageButton> activeButtons = new SparseArray<>();
+    private final SparseArray<TouchCapture> lastCaptures = new SparseArray<>();
+
+    /** Maneja multitáctil + logs del D-Pad y Shift */
     private boolean handleTouchEvent(MotionEvent event) {
-        float rawX = event.getRawX();
-        float rawY = event.getRawY();
 
-        // Obtener coordenadas relativas a imageView
-        int[] imageViewLocation = new int[2];
-        imageView.getLocationOnScreen(imageViewLocation);
-        float imageViewX = rawX - imageViewLocation[0];
-        float imageViewY = rawY - imageViewLocation[1];
+        // Posición absoluta del ImageView (para convertir a coords relativas)
+        imageView.getLocationOnScreen(ivPos);          // ivPos[0]=left, ivPos[1]=top
 
-        ImageButton currentTouchedButton = null;
+        int actionMasked  = event.getActionMasked();
+        int pointerIndex  = event.getActionIndex();
+        int pointerId     = event.getPointerId(pointerIndex);
 
-        // Detectar botón actualmente tocado
-        for (ImageButton button : new ImageButton[]{
-                btnTopLeft, btnTop, btnTopRight,
-                btnLeft, btnShift, btnRight,
-                btnBottomLeft, btnBottom, btnBottomRight
-        }) {
-            Rect rect = new Rect();
-            button.getGlobalVisibleRect(rect);
-            if (rect.contains((int) rawX, (int) rawY)) {
-                currentTouchedButton = button;
+        switch (actionMasked) {
+
+            /* ---------- Dedo NUEVO ---------- */
+            case MotionEvent.ACTION_DOWN:
+            case MotionEvent.ACTION_POINTER_DOWN: {
+
+                ImageButton btn = findButtonUnder(event, pointerIndex);
+                activeButtons.put(pointerId, btn);
+
+                if (btn != null && btn != btnShift) {               // log entrar
+                    btn.setPressed(true);
+                    Log.d("DPAD_DEBUG", "Dedo ENCIMA de: " + getButtonName(btn));
+                }
+
+                if (btn == null) {                                  // pantalla remota
+                    float relX = event.getRawX(pointerIndex) - ivPos[0];
+                    float relY = event.getRawY(pointerIndex) - ivPos[1];
+                    sendCapture(pointerId, relX, relY, MotionEvent.ACTION_DOWN);
+                }
+                break;
+            }
+
+            /* ---------- Algún dedo SE MUEVE ---------- */
+            case MotionEvent.ACTION_MOVE: {
+
+                int pc = event.getPointerCount();
+                for (int i = 0; i < pc; i++) {
+
+                    int id   = event.getPointerId(i);
+                    ImageButton now  = findButtonUnder(event, i);
+                    ImageButton prev = activeButtons.get(id);
+
+                    if (prev != now) {   // hubo cambio de botón
+                        if (prev != null && prev != btnShift) {
+                            prev.setPressed(false);
+                            Log.d("DPAD_DEBUG", "Dedo QUITADO de: " + getButtonName(prev));
+                        }
+                        if (now != null && now != btnShift) {
+                            now.setPressed(true);
+                            Log.d("DPAD_DEBUG", "Dedo ENCIMA de: " + getButtonName(now));
+                        }
+                        activeButtons.put(id, now);
+                    }
+
+                    if (now == null) {  // movimiento sobre la pre-vista
+                        float relX = event.getRawX(i) - ivPos[0];
+                        float relY = event.getRawY(i) - ivPos[1];
+                        sendCapture(id, relX, relY, MotionEvent.ACTION_MOVE);
+                    }
+                }
+                break;
+            }
+
+            /* ---------- Dedo SE LEVANTA ---------- */
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_POINTER_UP:
+            case MotionEvent.ACTION_CANCEL: {
+
+                ImageButton btn = activeButtons.get(pointerId);
+                boolean inside = btn != null && findButtonUnder(event, pointerIndex) == btn;
+
+                /* --- Shift: detectar doble-tap --- */
+                if (btn == btnShift && inside) {
+                    long now = System.currentTimeMillis();
+                    if (now - lastShiftClickTime < 300) {
+                        isShiftLocked = !isShiftLocked;
+                        btn.setPressed(isShiftLocked);
+                        Log.d("DPAD_DEBUG", "DOBLE CLIC en Shift");
+                        lastShiftClickTime = 0;      // reset para evitar triple-tap
+                    } else {
+                        lastShiftClickTime = now;
+                    }
+                }
+
+                /* --- Otros botones: log y visual --- */
+                if (btn != null && btn != btnShift) {
+                    btn.setPressed(false);
+                    if (inside) {
+                        Log.d("DPAD_DEBUG", "CLIC en: " + getButtonName(btn));
+                    } else {
+                        Log.d("DPAD_DEBUG", "Dedo QUITADO de: " + getButtonName(btn));
+                    }
+                }
+                activeButtons.remove(pointerId);
+
+                /* --- Pantalla remota: enviamos UP --- */
+                if (btn == null) {
+                    float relX = event.getRawX(pointerIndex) - ivPos[0];
+                    float relY = event.getRawY(pointerIndex) - ivPos[1];
+                    sendCapture(pointerId, relX, relY, MotionEvent.ACTION_UP);
+                }
+                lastCaptures.remove(pointerId);
                 break;
             }
         }
+        return true;
+    }
 
-        // Procesar estado de cada botón
-        for (ImageButton button : new ImageButton[]{
+
+    // Posición (left, top) del ImageView en pantalla; lo actualizaremos en cada frame
+    private final int[] ivPos = new int[2];
+
+
+    private void sendCapture(int pointerId, float x, float y, int action) {
+        TouchCapture prev = lastCaptures.get(pointerId);
+        TouchCapture tc   = new TouchCapture(pointerId, (int) x, (int) y, action,
+                prev == null ? null : new TouchCapture(prev),
+                imageView.getWidth(), imageView.getHeight());
+        try {
+            client.enqueueTouchCapture(tc);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            Log.e("TouchEvent", "enqueueTouchCapture interrumpido", e);
+        }
+        lastCaptures.put(pointerId, tc);
+    }
+
+    /**
+     * Devuelve el ImageButton que está bajo el dedo indicado, o null si no hay ninguno.
+     *
+     * @param event        MotionEvent con todos los dedos
+     * @param pointerIndex índice del dedo que queremos comprobar (0‒pointerCount-1)
+     */
+    /**
+     * Devuelve el ImageButton que está bajo el dedo indicado, o null si no hay ninguno.
+     */
+    private ImageButton findButtonUnder(MotionEvent event, int pointerIndex) {
+
+        float rawX = event.getRawX(pointerIndex);
+        float rawY = event.getRawY(pointerIndex);
+
+        for (ImageButton b : new ImageButton[]{
                 btnTopLeft, btnTop, btnTopRight,
                 btnLeft, btnShift, btnRight,
                 btnBottomLeft, btnBottom, btnBottomRight
         }) {
-            Rect rect = new Rect();
-            button.getGlobalVisibleRect(rect);
-            boolean isInside = rect.contains((int) rawX, (int) rawY);
-            boolean wasPressed = button.isPressed();
-
-            switch (event.getActionMasked()) {
-                case MotionEvent.ACTION_DOWN:
-                case MotionEvent.ACTION_MOVE:
-                    // Excluir efecto de brillo para Shift
-                    if (button != btnShift) {
-                        button.setPressed(button == currentTouchedButton);
-                    }
-
-                    // Logs solo para botones normales
-                    if (button != btnShift) {
-                        if (!wasPressed && button.isPressed()) {
-                            Log.d("DPAD_DEBUG", "Dedo ENCIMA de: " + getButtonName(button));
-                        } else if (wasPressed && !button.isPressed()) {
-                            Log.d("DPAD_DEBUG", "Dedo QUITADO de: " + getButtonName(button));
-                        }
-                    }
-                    break;
-
-                case MotionEvent.ACTION_UP:
-                case MotionEvent.ACTION_CANCEL:
-                    button.setPressed(false);
-
-                    if (isInside) {
-                        if (button == btnShift) {
-                            // Manejar doble click para Shift
-                            long now = System.currentTimeMillis();
-                            if (now - lastShiftClickTime < 300) {
-                                isShiftLocked = !isShiftLocked;
-                                button.setPressed(isShiftLocked);
-                                Log.d("DPAD_DEBUG", "DOBLE CLIC en Shift");
-                                lastShiftClickTime = 0; // Reset para evitar triple clic
-                            } else {
-                                lastShiftClickTime = now;
-                            }
-                        } else {
-                            button.performClick();
-                            Log.d("DPAD_DEBUG", "CLIC en: " + getButtonName(button));
-                        }
-                    }
-                    break;
+            Rect r = new Rect();
+            b.getGlobalVisibleRect(r);          // rectángulo absoluto
+            if (r.contains((int) rawX, (int) rawY)) {
+                return b;
             }
         }
-
-        // Enviar evento al servidor si no es sobre el D-pad
-        if (currentTouchedButton == null) {
-            if (imageViewX >= 0 && imageViewX <= imageView.getWidth() &&
-                    imageViewY >= 0 && imageViewY <= imageView.getHeight()) {
-
-                TouchCapture touchCaptureObj = new TouchCapture(
-                        (int) imageViewX,
-                        (int) imageViewY,
-                        event.getAction(),
-                        lastCapture == null ? null : new TouchCapture(lastCapture),
-                        imageView.getWidth(),
-                        imageView.getHeight()
-                );
-
-                try {
-                    client.enqueueTouchCapture(touchCaptureObj);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    Log.e("TouchEvent", "Interrupción en enqueueTouchCapture", e);
-                }
-                lastCapture = touchCaptureObj;
-            }
-        }
-
-        return true;
+        return null;
     }
+
 
     // Método auxiliar para nombres de botones
     private String getButtonName(ImageButton button) {
