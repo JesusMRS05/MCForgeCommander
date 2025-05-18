@@ -2,6 +2,8 @@
 <resources>
     <dimen name="dPad_padding">4dp</dimen>
     <dimen name="dPad_button_size">52dp</dimen>
-    <dimen name="dPad_small_button_size">39dp</dimen>
+    <dimen name="dPad_button_size_long">56dp</dimen>
+    <dimen name="dPad_shift_size">52dp</dimen>
+    <dimen name="dPad_small_button_size">43dp</dimen>
     <dimen name="dPad_button_diff">13dp</dimen>
 </resources>
