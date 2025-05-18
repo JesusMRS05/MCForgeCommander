@@ -30,7 +30,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class Client {
     private static final int TIMEOUT = 10000; // in ms
-    private static final int MAX_QUEUE_SIZE = 100;
+    private static final int MAX_QUEUE_SIZE = 300;
+    private static final int MAX_TOUCH_CAPTURE_QUEUE_SIZE = 1000;
     private static WeakReference<MainActivity> mainActivityRef;
     private static Client client;
     private Socket socket;
@@ -38,11 +39,12 @@ public class Client {
     private ObjectInputStream input;
     private BlockingQueue<byte[]> imageQueue = new LinkedBlockingQueue<>(MAX_QUEUE_SIZE);
     private BlockingQueue<ServerPacket.GUIStatus> guiStatusQueue = new LinkedBlockingQueue<>(MAX_QUEUE_SIZE);
-    public BlockingQueue<TouchCapture> touchCaptures = new LinkedBlockingQueue<>(MAX_QUEUE_SIZE);
+    public BlockingQueue<TouchCapture> touchCaptureQueue = new LinkedBlockingQueue<>(MAX_TOUCH_CAPTURE_QUEUE_SIZE);
     private GUIStatusThread guiStatusThread;
     private ImageThread imageThread;
     private ProducerThread producerThread;
     private TouchCaptureSenderThread touchCaptureSenderThread;
+    private volatile boolean isReceivingImage = false;
 
 
     public static synchronized Client getInstance() {
@@ -52,10 +54,10 @@ public class Client {
         return client;
     }
 
-    public void connect(String host, int port, String password) {
+    public void connect(String host, int port, String password, Runnable onConnect) {
         new Thread(() -> {
             try {
-                Socket socket = new Socket();
+                socket = new Socket();
                 socket.connect(new InetSocketAddress(host, port), TIMEOUT);
                 input = new ObjectInputStream(socket.getInputStream());
                 output = new ObjectOutputStream(socket.getOutputStream());
@@ -70,6 +72,10 @@ public class Client {
                     producerThread.start();
                     guiStatusThread.start();
                     imageThread.start();
+                    isReceivingImage = true;
+                    onConnect.run();
+                } else {
+                    showAlertDialog("Connection Error", "Wrong password");
                 }
             } catch (UnknownHostException uhe) {
                 showAlertDialog("Connection Error", "Unknown host");
@@ -80,6 +86,25 @@ public class Client {
             }
 
         }).start();
+    }
+
+    public void disconnect(Runnable onDisconnect) {
+        try {
+            producerThread.interrupt();
+            guiStatusThread.interrupt();
+            imageThread.interrupt();
+            touchCaptureSenderThread.interrupt();
+            imageQueue.clear();
+            guiStatusQueue.clear();
+            touchCaptureQueue.clear();
+            output.close();
+            input.close();
+            socket.close();
+            isReceivingImage = false;
+            onDisconnect.run();
+        } catch (IOException ioe){
+            ioe.printStackTrace();
+        }
     }
 
     public void sendCommand(Command command) {
@@ -122,11 +147,11 @@ public class Client {
     }
 
     public void enqueueTouchCapture(TouchCapture touchCapture) throws InterruptedException {
-        touchCaptures.put(touchCapture);
+        touchCaptureQueue.put(touchCapture);
     }
 
     public TouchCapture takeTouchCapture() throws InterruptedException {
-        return touchCaptures.take();
+        return touchCaptureQueue.take();
     }
 
     private void showAlertDialog(String title, String message) {
@@ -160,5 +185,13 @@ public class Client {
                 positiveButton.setTypeface(minecraftTypeface);
             }
         });
+    }
+
+    public boolean isConnected() {
+        return socket != null && socket.isConnected();
+    }
+
+    public boolean isReceivingImage() {
+        return isReceivingImage;
     }
 }

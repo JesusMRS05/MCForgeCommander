@@ -55,6 +55,10 @@ public class ModifyConnectionInfoDialog extends Dialog {
         tietPort = findViewById(R.id.tietPort);
         tietPass = findViewById(R.id.tietPass);
 
+        tietHost.setText(connectionInfo.getHost());
+        tietPort.setText(String.valueOf(connectionInfo.getPort()));
+        tietPass.setText(connectionInfo.getPassword());
+
         btnCancel.setOnClickListener(v -> {
             dismiss();
         });

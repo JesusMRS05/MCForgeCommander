@@ -1,10 +1,14 @@
 package com.github.jesusmrs05.mcforgecommander.app;
 
 import android.content.Context;
+
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKey;
+
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.security.GeneralSecurityException;
@@ -15,7 +19,9 @@ public class SecurePreferencesHelper {
 
     private static final String PREFS_NAME = "secure_prefs";
     private static final String KEY_CONNECTIONS = "connections";
-    private static final Gson gson = new Gson();
+    private static final Gson gson = new GsonBuilder()
+            .excludeFieldsWithoutExposeAnnotation()
+            .create();
 
     public static void saveConnections(Context context, List<ConnectionInfo> connections) {
         try {
@@ -58,7 +64,8 @@ public class SecurePreferencesHelper {
             String json = sharedPreferences.getString(KEY_CONNECTIONS, "");
             if (json.isEmpty()) return new ArrayList<>();
 
-            Type type = new TypeToken<List<ConnectionInfo>>() {}.getType();
+            Type type = new TypeToken<List<ConnectionInfo>>() {
+            }.getType();
             return gson.fromJson(json, type);
 
         } catch (GeneralSecurityException | IOException e) {

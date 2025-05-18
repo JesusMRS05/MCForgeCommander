@@ -21,7 +21,9 @@ public class ImageThread extends Thread{
                 byte[] imageBytes = client.takeImage();
                 Bitmap bitmap = decodeSampledBitmap(imageBytes, 426, 240);
                 mainActivity.runOnUiThread(() -> {
-                    mainActivity.setImage(bitmap);
+                    if(client.isConnected() && client.isReceivingImage()){
+                        mainActivity.setImage(bitmap);
+                    }
                 });
             }
         } catch (InterruptedException ie){

@@ -84,7 +84,7 @@ public class MainActivity extends AppCompatActivity {
         final float density = getResources().getDisplayMetrics().density;
         final float drawerPx = drawerWidth * density;
         connectionInfos = SecurePreferencesHelper.loadConnections(this);
-        connectionInfoAdapter = new ConnectionInfoAdapter(connectionInfos);
+        connectionInfoAdapter = new ConnectionInfoAdapter(connectionInfos, this);
         rvConnections = findViewById(R.id.rvConnections);
         rvConnections.setAdapter(connectionInfoAdapter);
         rvConnections.setLayoutManager(new LinearLayoutManager(this));

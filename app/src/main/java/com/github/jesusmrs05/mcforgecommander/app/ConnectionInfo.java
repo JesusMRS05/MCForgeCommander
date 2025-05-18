@@ -1,10 +1,15 @@
 package com.github.jesusmrs05.mcforgecommander.app;
 
+import com.google.gson.annotations.Expose;
+
 public class ConnectionInfo {
-    private String host;
-    private int port;
-    private String password;
-    private boolean connected;
+    @Expose
+    private String host = "";
+    @Expose
+    private int port = 0;
+    @Expose
+    private String password = "";
+    private boolean connected = false;
 
     public ConnectionInfo() {
     }
