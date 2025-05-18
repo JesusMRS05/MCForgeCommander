@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="0dp"
+    android:layout_height="0dp"
+    android:background="#88000000"
+    android:gravity="center"
+    android:layout_gravity="center">
+
+    <ProgressBar
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:indeterminate="true"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark"
+        android:layout_gravity="center"/>
+</FrameLayout>

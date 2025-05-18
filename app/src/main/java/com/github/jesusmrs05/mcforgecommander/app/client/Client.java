@@ -45,7 +45,7 @@ public class Client {
     private ProducerThread producerThread;
     private TouchCaptureSenderThread touchCaptureSenderThread;
     private volatile boolean isReceivingImage = false;
-
+    private LoadingDialog loadingDialog;
 
     public static synchronized Client getInstance() {
         if (Client.client == null) {
@@ -55,6 +55,14 @@ public class Client {
     }
 
     public void connect(String host, int port, String password, Runnable onConnect) {
+        MainActivity mainActivity = mainActivityRef.get();
+        if (mainActivity == null) return;
+
+        mainActivity.runOnUiThread(() -> {
+            loadingDialog = new LoadingDialog();
+            loadingDialog.show(mainActivity.getSupportFragmentManager(), "loading");
+        });
+
         new Thread(() -> {
             try {
                 socket = new Socket();
@@ -63,6 +71,7 @@ public class Client {
                 output = new ObjectOutputStream(socket.getOutputStream());
                 output.writeUTF(password);
                 output.flush();
+
                 if (input.readUTF().equalsIgnoreCase("Welcome")) {
                     producerThread = new ProducerThread();
                     guiStatusThread = new GUIStatusThread();
@@ -73,19 +82,40 @@ public class Client {
                     guiStatusThread.start();
                     imageThread.start();
                     isReceivingImage = true;
-                    onConnect.run();
+
+                    runOnUi(mainActivity, () -> {
+                        loadingDialog.dismiss();
+                        onConnect.run();
+                    });
                 } else {
-                    showAlertDialog("Connection Error", "Wrong password");
+                    runOnUi(mainActivity, () -> {
+                        loadingDialog.dismiss();
+                        showAlertDialog("Connection Error", "Wrong password");
+                    });
                 }
             } catch (UnknownHostException uhe) {
-                showAlertDialog("Connection Error", "Unknown host");
+                runOnUi(mainActivity, () -> {
+                    loadingDialog.dismiss();
+                    showAlertDialog("Connection Error", "Unknown host");
+                });
             } catch (SocketTimeoutException stoe) {
-                showAlertDialog("Connection Error", "Connection Timed Out");
+                runOnUi(mainActivity, () -> {
+                    loadingDialog.dismiss();
+                    showAlertDialog("Connection Error", "Connection Timed Out");
+                });
             } catch (IOException ioe) {
-                showAlertDialog("Connection Error", "Connection Failure: " + ioe.getMessage());
+                runOnUi(mainActivity, () -> {
+                    loadingDialog.dismiss();
+                    showAlertDialog("Connection Error", "Connection Failure: " + ioe.getMessage());
+                });
             }
-
         }).start();
+    }
+
+    private void runOnUi(MainActivity mainActivity, Runnable runnable) {
+        if (mainActivity != null) {
+            mainActivity.runOnUiThread(runnable);
+        }
     }
 
     public void disconnect(Runnable onDisconnect) {
@@ -102,7 +132,7 @@ public class Client {
             socket.close();
             isReceivingImage = false;
             onDisconnect.run();
-        } catch (IOException ioe){
+        } catch (IOException ioe) {
             ioe.printStackTrace();
         }
     }
