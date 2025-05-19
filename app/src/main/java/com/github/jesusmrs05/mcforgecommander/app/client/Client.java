@@ -9,6 +9,7 @@ import androidx.core.content.res.ResourcesCompat;
 
 import com.github.jesusmrs05.mcforgecommander.R;
 import com.github.jesusmrs05.mcforgecommander.app.activities.MainActivity;
+import com.github.jesusmrs05.mcforgecommander.app.client.threads.CommandSenderThread;
 import com.github.jesusmrs05.mcforgecommander.app.client.threads.GUIStatusThread;
 import com.github.jesusmrs05.mcforgecommander.app.client.threads.ImageThread;
 import com.github.jesusmrs05.mcforgecommander.app.client.threads.ProducerThread;
@@ -40,7 +41,9 @@ public class Client {
     private BlockingQueue<byte[]> imageQueue = new LinkedBlockingQueue<>(MAX_QUEUE_SIZE);
     private BlockingQueue<ServerPacket.GUIStatus> guiStatusQueue = new LinkedBlockingQueue<>(MAX_QUEUE_SIZE);
     public BlockingQueue<TouchCapture> touchCaptureQueue = new LinkedBlockingQueue<>(MAX_TOUCH_CAPTURE_QUEUE_SIZE);
+    private BlockingQueue<Command> commandQueue = new LinkedBlockingQueue<>(MAX_QUEUE_SIZE);
     private GUIStatusThread guiStatusThread;
+    private CommandSenderThread commandSenderThread;
     private ImageThread imageThread;
     private ProducerThread producerThread;
     private TouchCaptureSenderThread touchCaptureSenderThread;
@@ -77,6 +80,8 @@ public class Client {
                     guiStatusThread = new GUIStatusThread();
                     imageThread = new ImageThread(mainActivityRef.get());
                     touchCaptureSenderThread = new TouchCaptureSenderThread();
+                    commandSenderThread = new CommandSenderThread();
+                    commandSenderThread.start();
                     touchCaptureSenderThread.start();
                     producerThread.start();
                     guiStatusThread.start();
@@ -124,6 +129,7 @@ public class Client {
             guiStatusThread.interrupt();
             imageThread.interrupt();
             touchCaptureSenderThread.interrupt();
+            commandSenderThread.interrupt();
             imageQueue.clear();
             guiStatusQueue.clear();
             touchCaptureQueue.clear();
@@ -137,12 +143,17 @@ public class Client {
         }
     }
 
-    public void sendCommand(Command command) {
+    public void sendCommand(Command cmd) {
+        if (socket == null || socket.isClosed()) return;
+
         try {
-            output.writeObject(command);
-            output.flush();
+            synchronized (output) {            // <-- ¡clave!
+                output.writeUnshared(cmd);     // evita referencias a objs previos
+                output.flush();
+                // opcional cada N mensajes:  output.reset();
+            }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(e);     // o tu manejo de error
         }
     }
 
@@ -223,5 +234,13 @@ public class Client {
 
     public boolean isReceivingImage() {
         return isReceivingImage;
+    }
+
+    public void enqueueCommand(Command command) {
+        commandQueue.offer(command);
+    }
+
+    public Command takeCommand() throws InterruptedException {
+        return commandQueue.take();
     }
 }

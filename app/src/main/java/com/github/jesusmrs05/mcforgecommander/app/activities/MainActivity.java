@@ -52,6 +52,8 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -202,11 +204,66 @@ public class MainActivity extends AppCompatActivity {
     private final SparseArray<ImageButton> activeButtons = new SparseArray<>();
     private final SparseArray<TouchCapture> lastCaptures = new SparseArray<>();
 
-    /** Maneja multitáctil + logs del D-Pad y Shift */
+
+    // Cuenta cuántos dedos mantienen pulsada cada dirección
+    private final EnumMap<Instruction, Integer> dirCount =
+            new EnumMap<>(Instruction.class);
+
+    // Posición (left, top) del ImageView en pantalla
+    private final int[] ivPos = new int[2];
+
+    /** Si el contador pasa de 0→1 enviamos true al servidor. */
+    private void press(Instruction instr) {
+        int n = dirCount.getOrDefault(instr, 0) + 1;
+        dirCount.put(instr, n);
+        if (n == 1) client.enqueueCommand(new Command(instr, Boolean.TRUE));
+    }
+
+    /** Si el contador pasa de 1→0 enviamos false al servidor. */
+    private void release(Instruction instr) {
+        int n = dirCount.getOrDefault(instr, 0) - 1;
+        if (n < 0) n = 0;
+        dirCount.put(instr, n);
+        if (n == 0) client.enqueueCommand(new Command(instr, Boolean.FALSE));
+    }
+
+    /** Devuelve las direcciones que controla cada botón. */
+    private EnumSet<Instruction> dirsFor(ImageButton b) {
+        if (b == btnTopLeft)     return EnumSet.of(Instruction.TOGGLE_MOVE_LEFT,
+                Instruction.TOGGLE_MOVE_FORWARD);
+        if (b == btnTop)         return EnumSet.of(Instruction.TOGGLE_MOVE_FORWARD);
+        if (b == btnTopRight)    return EnumSet.of(Instruction.TOGGLE_MOVE_RIGHT,
+                Instruction.TOGGLE_MOVE_FORWARD);
+        if (b == btnLeft)        return EnumSet.of(Instruction.TOGGLE_MOVE_LEFT);
+        if (b == btnRight)       return EnumSet.of(Instruction.TOGGLE_MOVE_RIGHT);
+        if (b == btnBottomLeft)  return EnumSet.of(Instruction.TOGGLE_MOVE_LEFT,
+                Instruction.TOGGLE_MOVE_BACKWARD);
+        if (b == btnBottom)      return EnumSet.of(Instruction.TOGGLE_MOVE_BACKWARD);
+        if (b == btnBottomRight) return EnumSet.of(Instruction.TOGGLE_MOVE_RIGHT,
+                Instruction.TOGGLE_MOVE_BACKWARD);
+        return EnumSet.noneOf(Instruction.class);
+    }
+
+    /** Activa/desactiva solo las direcciones que cambian de prev → now. */
+    private void updateDirections(ImageButton prev, ImageButton now) {
+        EnumSet<Instruction> prevDirs = dirsFor(prev);
+        EnumSet<Instruction> nowDirs  = dirsFor(now);
+
+        for (Instruction i : EnumSet.copyOf(prevDirs)) {
+            if (!nowDirs.contains(i)) release(i);          // ya no se mantiene
+        }
+        for (Instruction i : EnumSet.copyOf(nowDirs)) {
+            if (!prevDirs.contains(i)) press(i);           // nueva dirección
+        }
+    }
+
+
+    /**
+     * Maneja multitáctil + logs del D-Pad y Shift
+     */
     private boolean handleTouchEvent(MotionEvent event) {
 
-        // Posición absoluta del ImageView (para convertir a coords relativas)
-        imageView.getLocationOnScreen(ivPos);          // ivPos[0]=left, ivPos[1]=top
+        imageView.getLocationOnScreen(ivPos);
 
         int actionMasked  = event.getActionMasked();
         int pointerIndex  = event.getActionIndex();
@@ -221,12 +278,13 @@ public class MainActivity extends AppCompatActivity {
                 ImageButton btn = findButtonUnder(event, pointerIndex);
                 activeButtons.put(pointerId, btn);
 
-                if (btn != null && btn != btnShift) {               // log entrar
+                if (btn != null && btn != btnShift) {
                     btn.setPressed(true);
                     Log.d("DPAD_DEBUG", "Dedo ENCIMA de: " + getButtonName(btn));
+                    updateDirections(null, btn);           // <-- DIFERENCIAS
                 }
 
-                if (btn == null) {                                  // pantalla remota
+                if (btn == null) {                         // pantalla remota
                     float relX = event.getRawX(pointerIndex) - ivPos[0];
                     float relY = event.getRawY(pointerIndex) - ivPos[1];
                     sendCapture(pointerId, relX, relY, MotionEvent.ACTION_DOWN);
@@ -240,23 +298,24 @@ public class MainActivity extends AppCompatActivity {
                 int pc = event.getPointerCount();
                 for (int i = 0; i < pc; i++) {
 
-                    int id   = event.getPointerId(i);
+                    int id  = event.getPointerId(i);
                     ImageButton now  = findButtonUnder(event, i);
                     ImageButton prev = activeButtons.get(id);
 
-                    if (prev != now) {   // hubo cambio de botón
+                    if (prev != now) {                     // transición de botón
                         if (prev != null && prev != btnShift) {
                             prev.setPressed(false);
                             Log.d("DPAD_DEBUG", "Dedo QUITADO de: " + getButtonName(prev));
                         }
-                        if (now != null && now != btnShift) {
+                        if (now  != null && now  != btnShift) {
                             now.setPressed(true);
                             Log.d("DPAD_DEBUG", "Dedo ENCIMA de: " + getButtonName(now));
                         }
+                        updateDirections(prev, now);       // <-- DIFERENCIAS
                         activeButtons.put(id, now);
                     }
 
-                    if (now == null) {  // movimiento sobre la pre-vista
+                    if (now == null) {                     // movimiento preview
                         float relX = event.getRawX(i) - ivPos[0];
                         float relY = event.getRawY(i) - ivPos[1];
                         sendCapture(id, relX, relY, MotionEvent.ACTION_MOVE);
@@ -273,22 +332,23 @@ public class MainActivity extends AppCompatActivity {
                 ImageButton btn = activeButtons.get(pointerId);
                 boolean inside = btn != null && findButtonUnder(event, pointerIndex) == btn;
 
-                /* --- Shift: detectar doble-tap --- */
+                /* Shift: doble-tap */
                 if (btn == btnShift && inside) {
                     long now = System.currentTimeMillis();
                     if (now - lastShiftClickTime < 300) {
                         isShiftLocked = !isShiftLocked;
                         btn.setPressed(isShiftLocked);
                         Log.d("DPAD_DEBUG", "DOBLE CLIC en Shift");
-                        lastShiftClickTime = 0;      // reset para evitar triple-tap
+                        lastShiftClickTime = 0;
                     } else {
                         lastShiftClickTime = now;
                     }
                 }
 
-                /* --- Otros botones: log y visual --- */
+                /* Otros botones */
                 if (btn != null && btn != btnShift) {
                     btn.setPressed(false);
+                    updateDirections(btn, null);           // <-- LIBERAR direcciones
                     if (inside) {
                         Log.d("DPAD_DEBUG", "CLIC en: " + getButtonName(btn));
                     } else {
@@ -297,7 +357,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 activeButtons.remove(pointerId);
 
-                /* --- Pantalla remota: enviamos UP --- */
+                /* Pantalla remota: UP */
                 if (btn == null) {
                     float relX = event.getRawX(pointerIndex) - ivPos[0];
                     float relY = event.getRawY(pointerIndex) - ivPos[1];
@@ -311,13 +371,36 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    // Posición (left, top) del ImageView en pantalla; lo actualizaremos en cada frame
-    private final int[] ivPos = new int[2];
+    /** Envía los comandos de dirección correspondientes a un botón del D-Pad. */
+    private void sendDirectionalCommands(ImageButton btn, boolean pressed) {
+        Boolean state = Boolean.valueOf(pressed);   // true = pulsar, false = soltar
 
+        if (btn == btnTopLeft) {
+            client.enqueueCommand(new Command(Instruction.TOGGLE_MOVE_LEFT, state));
+            client.enqueueCommand(new Command(Instruction.TOGGLE_MOVE_FORWARD, state));
+        } else if (btn == btnTop) {
+            client.enqueueCommand(new Command(Instruction.TOGGLE_MOVE_FORWARD, state));
+        } else if (btn == btnTopRight) {
+            client.enqueueCommand(new Command(Instruction.TOGGLE_MOVE_RIGHT, state));
+            client.enqueueCommand(new Command(Instruction.TOGGLE_MOVE_FORWARD, state));
+        } else if (btn == btnLeft) {
+            client.enqueueCommand(new Command(Instruction.TOGGLE_MOVE_LEFT, state));
+        } else if (btn == btnRight) {
+            client.enqueueCommand(new Command(Instruction.TOGGLE_MOVE_RIGHT, state));
+        } else if (btn == btnBottomLeft) {
+            client.enqueueCommand(new Command(Instruction.TOGGLE_MOVE_LEFT, state));
+            client.enqueueCommand(new Command(Instruction.TOGGLE_MOVE_BACKWARD, state));
+        } else if (btn == btnBottom) {
+            client.enqueueCommand(new Command(Instruction.TOGGLE_MOVE_BACKWARD, state));
+        } else if (btn == btnBottomRight) {
+            client.enqueueCommand(new Command(Instruction.TOGGLE_MOVE_RIGHT, state));
+            client.enqueueCommand(new Command(Instruction.TOGGLE_MOVE_BACKWARD, state));
+        }
+    }
 
     private void sendCapture(int pointerId, float x, float y, int action) {
         TouchCapture prev = lastCaptures.get(pointerId);
-        TouchCapture tc   = new TouchCapture(pointerId, (int) x, (int) y, action,
+        TouchCapture tc = new TouchCapture(pointerId, (int) x, (int) y, action,
                 prev == null ? null : new TouchCapture(prev),
                 imageView.getWidth(), imageView.getHeight());
         try {
