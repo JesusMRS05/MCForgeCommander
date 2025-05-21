@@ -51,6 +51,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.net.Socket;
 import java.util.EnumMap;
 import java.util.EnumSet;
@@ -72,7 +73,8 @@ public class MainActivity extends AppCompatActivity {
     private List<ConnectionInfo> connectionInfos;
     private RecyclerView rvConnections;
     private ConnectionInfoAdapter connectionInfoAdapter;
-    private ImageButton btnTopLeft, btnTop, btnTopRight, btnLeft, btnShift, btnRight, btnBottomLeft, btnBottom, btnBottomRight;
+    private ImageButton btnTopLeft, btnTop, btnTopRight, btnLeft, btnShift, btnRight, btnBottomLeft, btnBottom, btnBottomRight, btnInventory, btnChat, btnEsc, btnJump;
+    private boolean isChatOpen, isEscOpen, isInventoryOpen;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,6 +93,10 @@ public class MainActivity extends AppCompatActivity {
         final int drawerWidth = 240; // in dp
         final float density = getResources().getDisplayMetrics().density;
         final float drawerPx = drawerWidth * density;
+        btnJump = findViewById(R.id.btnJump);
+        btnInventory = findViewById(R.id.btnInventory);
+        btnChat = findViewById(R.id.btnChat);
+        btnEsc = findViewById(R.id.btnEsc);
         connectionInfos = SecurePreferencesHelper.loadConnections(this);
         connectionInfoAdapter = new ConnectionInfoAdapter(connectionInfos, this);
         rvConnections = findViewById(R.id.rvConnections);
@@ -127,6 +133,21 @@ public class MainActivity extends AppCompatActivity {
             btnMenu.animate().translationX(buttonTargetX).setDuration(300).start();
 
             drawerOpen[0] = !drawerOpen[0];
+        });
+        btnChat.setOnClickListener(v -> {
+            isChatOpen = !isChatOpen;
+            client.enqueueCommand(new Command(Instruction.PRESS_CHAT_KEY, Boolean.valueOf(isChatOpen)));
+        });
+        btnEsc.setOnClickListener(v -> {
+            isEscOpen = !isEscOpen;
+            client.enqueueCommand(new Command(Instruction.PRESS_MENU_KEY, Boolean.valueOf(isEscOpen)));
+        });
+        btnInventory.setOnClickListener(v -> {
+            isInventoryOpen = !isInventoryOpen;
+            client.enqueueCommand(new Command(Instruction.PRESS_INVENTORY_KEY, Boolean.valueOf(isInventoryOpen)));
+        });
+        btnJump.setOnClickListener(v -> {
+            client.enqueueCommand(new Command(Instruction.PRESS_JUMP_KEY, Void.class));
         });
         ImageButton[] buttons = new ImageButton[]{btnTopLeft, btnTop, btnTopRight, btnLeft, btnRight, btnBottomLeft, btnBottom, btnBottomRight, btnShift};
 
