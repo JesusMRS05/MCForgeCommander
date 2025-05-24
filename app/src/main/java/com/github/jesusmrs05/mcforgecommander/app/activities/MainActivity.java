@@ -146,10 +146,7 @@ public class MainActivity extends AppCompatActivity {
             isInventoryOpen = !isInventoryOpen;
             client.enqueueCommand(new Command(Instruction.PRESS_INVENTORY_KEY, Boolean.valueOf(isInventoryOpen)));
         });
-        btnJump.setOnClickListener(v -> {
-            client.enqueueCommand(new Command(Instruction.PRESS_JUMP_KEY, Void.class));
-        });
-        ImageButton[] buttons = new ImageButton[]{btnTopLeft, btnTop, btnTopRight, btnLeft, btnRight, btnBottomLeft, btnBottom, btnBottomRight, btnShift};
+        ImageButton[] buttons = new ImageButton[]{btnTopLeft, btnTop, btnTopRight, btnLeft, btnRight, btnBottomLeft, btnBottom, btnBottomRight, btnShift, btnJump};
 
         View mainLayout = findViewById(R.id.main);
         mainLayout.setOnTouchListener((v, event) -> {
@@ -233,14 +230,18 @@ public class MainActivity extends AppCompatActivity {
     // Posición (left, top) del ImageView en pantalla
     private final int[] ivPos = new int[2];
 
-    /** Si el contador pasa de 0→1 enviamos true al servidor. */
+    /**
+     * Si el contador pasa de 0→1 enviamos true al servidor.
+     */
     private void press(Instruction instr) {
         int n = dirCount.getOrDefault(instr, 0) + 1;
         dirCount.put(instr, n);
         if (n == 1) client.enqueueCommand(new Command(instr, Boolean.TRUE));
     }
 
-    /** Si el contador pasa de 1→0 enviamos false al servidor. */
+    /**
+     * Si el contador pasa de 1→0 enviamos false al servidor.
+     */
     private void release(Instruction instr) {
         int n = dirCount.getOrDefault(instr, 0) - 1;
         if (n < 0) n = 0;
@@ -248,27 +249,31 @@ public class MainActivity extends AppCompatActivity {
         if (n == 0) client.enqueueCommand(new Command(instr, Boolean.FALSE));
     }
 
-    /** Devuelve las direcciones que controla cada botón. */
+    /**
+     * Devuelve las direcciones que controla cada botón.
+     */
     private EnumSet<Instruction> dirsFor(ImageButton b) {
-        if (b == btnTopLeft)     return EnumSet.of(Instruction.TOGGLE_MOVE_LEFT,
+        if (b == btnTopLeft) return EnumSet.of(Instruction.TOGGLE_MOVE_LEFT,
                 Instruction.TOGGLE_MOVE_FORWARD);
-        if (b == btnTop)         return EnumSet.of(Instruction.TOGGLE_MOVE_FORWARD);
-        if (b == btnTopRight)    return EnumSet.of(Instruction.TOGGLE_MOVE_RIGHT,
+        if (b == btnTop) return EnumSet.of(Instruction.TOGGLE_MOVE_FORWARD);
+        if (b == btnTopRight) return EnumSet.of(Instruction.TOGGLE_MOVE_RIGHT,
                 Instruction.TOGGLE_MOVE_FORWARD);
-        if (b == btnLeft)        return EnumSet.of(Instruction.TOGGLE_MOVE_LEFT);
-        if (b == btnRight)       return EnumSet.of(Instruction.TOGGLE_MOVE_RIGHT);
-        if (b == btnBottomLeft)  return EnumSet.of(Instruction.TOGGLE_MOVE_LEFT,
+        if (b == btnLeft) return EnumSet.of(Instruction.TOGGLE_MOVE_LEFT);
+        if (b == btnRight) return EnumSet.of(Instruction.TOGGLE_MOVE_RIGHT);
+        if (b == btnBottomLeft) return EnumSet.of(Instruction.TOGGLE_MOVE_LEFT,
                 Instruction.TOGGLE_MOVE_BACKWARD);
-        if (b == btnBottom)      return EnumSet.of(Instruction.TOGGLE_MOVE_BACKWARD);
+        if (b == btnBottom) return EnumSet.of(Instruction.TOGGLE_MOVE_BACKWARD);
         if (b == btnBottomRight) return EnumSet.of(Instruction.TOGGLE_MOVE_RIGHT,
                 Instruction.TOGGLE_MOVE_BACKWARD);
         return EnumSet.noneOf(Instruction.class);
     }
 
-    /** Activa/desactiva solo las direcciones que cambian de prev → now. */
+    /**
+     * Activa/desactiva solo las direcciones que cambian de prev → now.
+     */
     private void updateDirections(ImageButton prev, ImageButton now) {
         EnumSet<Instruction> prevDirs = dirsFor(prev);
-        EnumSet<Instruction> nowDirs  = dirsFor(now);
+        EnumSet<Instruction> nowDirs = dirsFor(now);
 
         for (Instruction i : EnumSet.copyOf(prevDirs)) {
             if (!nowDirs.contains(i)) release(i);          // ya no se mantiene
@@ -286,9 +291,9 @@ public class MainActivity extends AppCompatActivity {
 
         imageView.getLocationOnScreen(ivPos);
 
-        int actionMasked  = event.getActionMasked();
-        int pointerIndex  = event.getActionIndex();
-        int pointerId     = event.getPointerId(pointerIndex);
+        int actionMasked = event.getActionMasked();
+        int pointerIndex = event.getActionIndex();
+        int pointerId = event.getPointerId(pointerIndex);
 
         switch (actionMasked) {
 
@@ -299,7 +304,9 @@ public class MainActivity extends AppCompatActivity {
                 ImageButton btn = findButtonUnder(event, pointerIndex);
                 activeButtons.put(pointerId, btn);
 
-                if (btn != null && btn != btnShift) {
+                if (btn == btnJump) {
+                    client.enqueueCommand(new Command(Instruction.PRESS_JUMP_KEY, (Serializable) null));
+                } else if (btn != null && btn != btnShift) {
                     btn.setPressed(true);
                     Log.d("DPAD_DEBUG", "Dedo ENCIMA de: " + getButtonName(btn));
                     updateDirections(null, btn);           // <-- DIFERENCIAS
@@ -319,20 +326,23 @@ public class MainActivity extends AppCompatActivity {
                 int pc = event.getPointerCount();
                 for (int i = 0; i < pc; i++) {
 
-                    int id  = event.getPointerId(i);
-                    ImageButton now  = findButtonUnder(event, i);
+                    int id = event.getPointerId(i);
+                    ImageButton now = findButtonUnder(event, i);
                     ImageButton prev = activeButtons.get(id);
 
-                    if (prev != now) {                     // transición de botón
-                        if (prev != null && prev != btnShift) {
+                    if (prev != now) {
+                        if (prev != null && prev != btnShift && prev != btnJump) {
                             prev.setPressed(false);
                             Log.d("DPAD_DEBUG", "Dedo QUITADO de: " + getButtonName(prev));
                         }
-                        if (now  != null && now  != btnShift) {
+                        if (now == btnJump) {             // ← dedo acaba de ENTRAR en Jump
+                            client.enqueueCommand(new Command(Instruction.PRESS_JUMP_KEY, (Serializable) null));
+                        }
+                        else if (now != null && now != btnShift) {
                             now.setPressed(true);
                             Log.d("DPAD_DEBUG", "Dedo ENCIMA de: " + getButtonName(now));
                         }
-                        updateDirections(prev, now);       // <-- DIFERENCIAS
+                        updateDirections(prev, now);
                         activeButtons.put(id, now);
                     }
 
@@ -392,7 +402,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    /** Envía los comandos de dirección correspondientes a un botón del D-Pad. */
+    /**
+     * Envía los comandos de dirección correspondientes a un botón del D-Pad.
+     */
     private void sendDirectionalCommands(ImageButton btn, boolean pressed) {
         Boolean state = Boolean.valueOf(pressed);   // true = pulsar, false = soltar
 
@@ -450,7 +462,7 @@ public class MainActivity extends AppCompatActivity {
         for (ImageButton b : new ImageButton[]{
                 btnTopLeft, btnTop, btnTopRight,
                 btnLeft, btnShift, btnRight,
-                btnBottomLeft, btnBottom, btnBottomRight
+                btnBottomLeft, btnBottom, btnBottomRight, btnJump
         }) {
             Rect r = new Rect();
             b.getGlobalVisibleRect(r);          // rectángulo absoluto
