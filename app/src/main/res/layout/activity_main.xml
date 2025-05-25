@@ -249,6 +249,98 @@
         </LinearLayout>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginBottom="0dp">
+
+        <ImageButton
+            android:id="@+id/btn1"
+            android:layout_width="@dimen/hotbar_button_size"
+            android:layout_height="@dimen/hotbar_button_size"
+            android:background="@android:color/transparent"
+            android:foreground="?attr/selectableItemBackground"
+            android:scaleType="fitXY"
+            android:src="@drawable/minecraft_frame" />
+
+        <ImageButton
+            android:id="@+id/btn2"
+            android:layout_width="@dimen/hotbar_button_size"
+            android:layout_height="@dimen/hotbar_button_size"
+            android:background="@android:color/transparent"
+            android:foreground="?attr/selectableItemBackground"
+            android:scaleType="fitXY"
+            android:src="@drawable/minecraft_frame" />
+
+        <ImageButton
+            android:id="@+id/btn3"
+            android:layout_width="@dimen/hotbar_button_size"
+            android:layout_height="@dimen/hotbar_button_size"
+            android:background="@android:color/transparent"
+            android:foreground="?attr/selectableItemBackground"
+            android:scaleType="fitXY"
+            android:src="@drawable/minecraft_frame" />
+
+        <ImageButton
+            android:id="@+id/btn4"
+            android:layout_width="@dimen/hotbar_button_size"
+            android:layout_height="@dimen/hotbar_button_size"
+            android:background="@android:color/transparent"
+            android:foreground="?attr/selectableItemBackground"
+            android:scaleType="fitXY"
+            android:src="@drawable/minecraft_frame" />
+
+        <ImageButton
+            android:id="@+id/btn5"
+            android:layout_width="@dimen/hotbar_button_size"
+            android:layout_height="@dimen/hotbar_button_size"
+            android:background="@android:color/transparent"
+            android:foreground="?attr/selectableItemBackground"
+            android:scaleType="fitXY"
+            android:src="@drawable/minecraft_frame" />
+
+        <ImageButton
+            android:id="@+id/btn6"
+            android:layout_width="@dimen/hotbar_button_size"
+            android:layout_height="@dimen/hotbar_button_size"
+            android:background="@android:color/transparent"
+            android:foreground="?attr/selectableItemBackground"
+            android:scaleType="fitXY"
+            android:src="@drawable/minecraft_frame" />
+
+        <ImageButton
+            android:id="@+id/btn7"
+            android:layout_width="@dimen/hotbar_button_size"
+            android:layout_height="@dimen/hotbar_button_size"
+            android:background="@android:color/transparent"
+            android:foreground="?attr/selectableItemBackground"
+            android:scaleType="fitXY"
+            android:src="@drawable/minecraft_frame" />
+
+        <ImageButton
+            android:id="@+id/btn8"
+            android:layout_width="@dimen/hotbar_button_size"
+            android:layout_height="@dimen/hotbar_button_size"
+            android:background="@android:color/transparent"
+            android:foreground="?attr/selectableItemBackground"
+            android:scaleType="fitXY"
+            android:src="@drawable/minecraft_frame" />
+
+        <ImageButton
+            android:id="@+id/btn9"
+            android:layout_width="@dimen/hotbar_button_size"
+            android:layout_height="@dimen/hotbar_button_size"
+            android:background="@android:color/transparent"
+            android:foreground="?attr/selectableItemBackground"
+            android:scaleType="fitXY"
+            android:src="@drawable/minecraft_frame" />
+
+    </LinearLayout>
+
     <!--make translationX positive during development to see your changes in the editor-->
     <LinearLayout
         android:id="@+id/drawerMenu"
