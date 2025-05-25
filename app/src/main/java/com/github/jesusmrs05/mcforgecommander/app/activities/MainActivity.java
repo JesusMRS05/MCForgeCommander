@@ -77,6 +77,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageButton btnTopLeft, btnTop, btnTopRight, btnLeft, btnShift, btnRight, btnBottomLeft, btnBottom, btnBottomRight, btnInventory, btnChat, btnEsc, btnJump;
     private boolean isChatOpen, isEscOpen, isInventoryOpen;
     private final SparseBooleanArray startedOnPreview = new SparseBooleanArray();
+    private ImageButton[] hotbarButtons = new ImageButton[9];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -117,6 +118,21 @@ public class MainActivity extends AppCompatActivity {
         btnBottom = findViewById(R.id.btnBottom);
         btnBottomRight = findViewById(R.id.btnBottomRight);
         btnAddConnection = findViewById(R.id.btnAddConnection);
+        hotbarButtons[0] = findViewById(R.id.btn1);
+        hotbarButtons[1] = findViewById(R.id.btn2);
+        hotbarButtons[2] = findViewById(R.id.btn3);
+        hotbarButtons[3] = findViewById(R.id.btn4);
+        hotbarButtons[4] = findViewById(R.id.btn5);
+        hotbarButtons[5] = findViewById(R.id.btn6);
+        hotbarButtons[6] = findViewById(R.id.btn7);
+        hotbarButtons[7] = findViewById(R.id.btn8);
+        hotbarButtons[8] = findViewById(R.id.btn9);
+        for(int i = 0; i < hotbarButtons.length; i++) {
+            final int index = i;
+            hotbarButtons[i].setOnClickListener(v -> {
+                client.enqueueCommand(new Command(Instruction.PRESS_CERTAIN_HOTBAR_KEY, Integer.valueOf(index)));
+            });
+        }
         btnAddConnection.setOnClickListener(v -> {
             ConnectionInfo connectionInfo = new ConnectionInfo();
             Runnable callback = () -> {
