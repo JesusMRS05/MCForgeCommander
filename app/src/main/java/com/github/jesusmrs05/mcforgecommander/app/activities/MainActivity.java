@@ -360,7 +360,7 @@ public class MainActivity extends AppCompatActivity {
                     }
 
 
-                    if (now == null) {                     // movimiento preview
+                    if (now == null && startedOnPreview.get(id, false)) {                     // movimiento preview
                         float relX = event.getRawX(i) - ivPos[0];
                         float relY = event.getRawY(i) - ivPos[1];
                         sendCapture(id, relX, relY, MotionEvent.ACTION_MOVE);
@@ -401,6 +401,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 activeButtons.remove(pointerId);
+                startedOnPreview.delete(pointerId);
 
                 /* Pantalla remota: UP */
                 if (btn == null) {
