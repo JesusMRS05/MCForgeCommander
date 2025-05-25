@@ -16,6 +16,7 @@ import android.text.TextPaint;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.SparseArray;
+import android.util.SparseBooleanArray;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
@@ -75,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
     private ConnectionInfoAdapter connectionInfoAdapter;
     private ImageButton btnTopLeft, btnTop, btnTopRight, btnLeft, btnShift, btnRight, btnBottomLeft, btnBottom, btnBottomRight, btnInventory, btnChat, btnEsc, btnJump;
     private boolean isChatOpen, isEscOpen, isInventoryOpen;
+    private final SparseBooleanArray startedOnPreview = new SparseBooleanArray();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -304,13 +306,20 @@ public class MainActivity extends AppCompatActivity {
                 ImageButton btn = findButtonUnder(event, pointerIndex);
                 activeButtons.put(pointerId, btn);
 
-                if (btn == btnJump) {
-                    client.enqueueCommand(new Command(Instruction.PRESS_JUMP_KEY, (Serializable) null));
-                } else if (btn != null && btn != btnShift) {
+// ¿comenzó en la preview?
+                boolean fromPreview = (btn == null);
+                startedOnPreview.put(pointerId, fromPreview);
+
+                if (btn == btnJump && !fromPreview) {          // ← sólo taps directos
+                    client.enqueueCommand(new Command(
+                            Instruction.PRESS_JUMP_KEY, (Serializable) null));
+                }
+                else if (btn != null && btn != btnShift) {
                     btn.setPressed(true);
                     Log.d("DPAD_DEBUG", "Dedo ENCIMA de: " + getButtonName(btn));
-                    updateDirections(null, btn);           // <-- DIFERENCIAS
+                    updateDirections(null, btn);
                 }
+
 
                 if (btn == null) {                         // pantalla remota
                     float relX = event.getRawX(pointerIndex) - ivPos[0];
@@ -335,16 +344,21 @@ public class MainActivity extends AppCompatActivity {
                             prev.setPressed(false);
                             Log.d("DPAD_DEBUG", "Dedo QUITADO de: " + getButtonName(prev));
                         }
-                        if (now == btnJump) {             // ← dedo acaba de ENTRAR en Jump
-                            client.enqueueCommand(new Command(Instruction.PRESS_JUMP_KEY, (Serializable) null));
+
+                        if (now == btnJump && !startedOnPreview.get(id, false)) {
+                            // Solo si el dedo NO empezó sobre la preview
+                            client.enqueueCommand(new Command(
+                                    Instruction.PRESS_JUMP_KEY, (Serializable) null));
                         }
-                        else if (now != null && now != btnShift) {
+                        else if (now != null && now != btnShift && now != btnJump) {
                             now.setPressed(true);
                             Log.d("DPAD_DEBUG", "Dedo ENCIMA de: " + getButtonName(now));
                         }
+
                         updateDirections(prev, now);
                         activeButtons.put(id, now);
                     }
+
 
                     if (now == null) {                     // movimiento preview
                         float relX = event.getRawX(i) - ivPos[0];

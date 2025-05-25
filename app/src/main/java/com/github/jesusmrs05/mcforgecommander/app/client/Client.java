@@ -2,6 +2,7 @@ package com.github.jesusmrs05.mcforgecommander.app.client;
 
 import android.app.AlertDialog;
 import android.graphics.Typeface;
+import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -69,13 +70,25 @@ public class Client {
         new Thread(() -> {
             try {
                 socket = new Socket();
+                socket.setTcpNoDelay(true);
                 socket.connect(new InetSocketAddress(host, port), TIMEOUT);
-                input = new ObjectInputStream(socket.getInputStream());
+
+                Log.d("Client", "Creating Output");
                 output = new ObjectOutputStream(socket.getOutputStream());
-                output.writeUTF(password);
                 output.flush();
 
-                if (input.readUTF().equalsIgnoreCase("Welcome")) {
+                Log.d("Client", "Sending password");
+                output.writeObject(password);
+                output.flush();
+
+                Log.d("Client", "Creating Input");
+                input = new ObjectInputStream(socket.getInputStream());
+
+                Log.d("Client", "Reading response");
+                String response = (String) input.readObject();
+                Log.d("Client", "Response received: " + response);
+
+                if (response.equalsIgnoreCase("Welcome")) {
                     producerThread = new ProducerThread();
                     guiStatusThread = new GUIStatusThread();
                     imageThread = new ImageThread(mainActivityRef.get());
@@ -103,16 +116,25 @@ public class Client {
                     loadingDialog.dismiss();
                     showAlertDialog("Connection Error", "Unknown host");
                 });
+                uhe.printStackTrace();
             } catch (SocketTimeoutException stoe) {
                 runOnUi(mainActivity, () -> {
                     loadingDialog.dismiss();
                     showAlertDialog("Connection Error", "Connection Timed Out");
                 });
+                stoe.printStackTrace();
             } catch (IOException ioe) {
                 runOnUi(mainActivity, () -> {
                     loadingDialog.dismiss();
                     showAlertDialog("Connection Error", "Connection Failure: " + ioe.getMessage());
                 });
+                ioe.printStackTrace();
+            } catch (Exception e) {
+                runOnUi(mainActivity, () -> {
+                    loadingDialog.dismiss();
+                    showAlertDialog("Unknown Connection Error", "Unknown Connection Failure: " + e.getMessage());
+                });
+                e.printStackTrace();
             }
         }).start();
     }
