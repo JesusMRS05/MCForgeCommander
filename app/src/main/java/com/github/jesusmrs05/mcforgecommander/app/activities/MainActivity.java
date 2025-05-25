@@ -158,7 +158,34 @@ public class MainActivity extends AppCompatActivity {
         Bitmap defaultImage = createMultilineTextImageFullScreen(this, "Disconnected.\nOpen the leftside menu to add connections.", 18, Color.WHITE, 0x2B2B2B);
         setImage(defaultImage);
 
+        for (ImageButton c : new ImageButton[]{btnTopLeft, btnTopRight,
+                btnBottomLeft, btnBottomRight}) {
+            c.setVisibility(View.INVISIBLE);        // ocultos por defecto
+        }
         //client.connect("192.168.1.22", 6000, "s1C$BlmPGw4Fc87R");
+    }
+
+    private boolean isActive(ImageButton b) {
+        for (int i = 0; i < activeButtons.size(); i++) {
+            if (activeButtons.valueAt(i) == b) return true;
+        }
+        return false;
+    }
+
+    private void refreshCorners() {
+        boolean top    = isActive(btnTop);
+        boolean bottom = isActive(btnBottom);
+        boolean left   = isActive(btnLeft);
+        boolean right  = isActive(btnRight);
+
+        btnTopLeft.setVisibility(
+                (isActive(btnTopLeft)  || top || left) ? View.VISIBLE : View.INVISIBLE);
+        btnTopRight.setVisibility(
+                (isActive(btnTopRight) || top || right) ? View.VISIBLE : View.INVISIBLE);
+        btnBottomLeft.setVisibility(
+                (isActive(btnBottomLeft) || bottom || left) ? View.VISIBLE : View.INVISIBLE);
+        btnBottomRight.setVisibility(
+                (isActive(btnBottomRight) || bottom || right) ? View.VISIBLE : View.INVISIBLE);
     }
 
     public void setImage(Bitmap bitmap) {
@@ -305,6 +332,7 @@ public class MainActivity extends AppCompatActivity {
 
                 ImageButton btn = findButtonUnder(event, pointerIndex);
                 activeButtons.put(pointerId, btn);
+                refreshCorners();
 
 // ¿comenzó en la preview?
                 boolean fromPreview = (btn == null);
@@ -357,6 +385,7 @@ public class MainActivity extends AppCompatActivity {
 
                         updateDirections(prev, now);
                         activeButtons.put(id, now);
+                        refreshCorners();
                     }
 
 
@@ -402,6 +431,7 @@ public class MainActivity extends AppCompatActivity {
                 }
                 activeButtons.remove(pointerId);
                 startedOnPreview.delete(pointerId);
+                refreshCorners();
 
                 /* Pantalla remota: UP */
                 if (btn == null) {
