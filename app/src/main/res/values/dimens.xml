@@ -8,4 +8,5 @@
     <dimen name="dPad_button_diff">13dp</dimen>
     <dimen name="hotbar_padding">4dp</dimen>
     <dimen name="hotbar_button_size">39dp</dimen>
+    <dimen name="connection_info_line_height">1dp</dimen>
 </resources>

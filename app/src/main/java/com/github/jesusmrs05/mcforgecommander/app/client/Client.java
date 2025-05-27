@@ -58,7 +58,7 @@ public class Client {
         return client;
     }
 
-    public void connect(String host, int port, String password, Runnable onConnect) {
+    public void connect(String host, int port, String password, int fps, float imageQuality, Runnable onConnect) {
         MainActivity mainActivity = mainActivityRef.get();
         if (mainActivity == null) return;
 
@@ -78,17 +78,21 @@ public class Client {
                 output.flush();
 
                 Log.d("Client", "Sending password");
-                output.writeObject(password);
+                output.writeUTF(password);
                 output.flush();
 
                 Log.d("Client", "Creating Input");
                 input = new ObjectInputStream(socket.getInputStream());
 
                 Log.d("Client", "Reading response");
-                String response = (String) input.readObject();
+                String response = input.readUTF();
                 Log.d("Client", "Response received: " + response);
 
                 if (response.equalsIgnoreCase("Welcome")) {
+                    output.writeInt(fps);
+                    output.flush();
+                    output.writeFloat(imageQuality);
+                    output.flush();
                     producerThread = new ProducerThread();
                     guiStatusThread = new GUIStatusThread();
                     imageThread = new ImageThread(mainActivityRef.get());

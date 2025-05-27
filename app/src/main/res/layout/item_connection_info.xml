@@ -1,53 +1,89 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="horizontal"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:orientation="vertical"
     android:paddingStart="8dp"
     android:paddingEnd="8dp">
 
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/connection_info_line_height"
+        android:background="#000000" />
+
     <LinearLayout
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingEnd="16dp"
-        android:layout_weight="1">
+        android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/tvHost"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Host: 255.255.255.255"
-            android:fontFamily="@font/minecraftia_regular"
-            android:textSize="12sp"
-            android:textColor="@color/black"/>
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingEnd="16dp">
 
-        <TextView
-            android:id="@+id/tvPort"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Port: 65535"
-            android:fontFamily="@font/minecraftia_regular"
-            android:textSize="12sp"
-            android:textColor="@color/black"/>
+            <TextView
+                android:id="@+id/tvHost"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/minecraftia_regular"
+                android:text="Host: 255.255.255.255"
+                android:textColor="@color/black"
+                android:textSize="12sp" />
 
-        <TextView
-            android:id="@+id/tvConnectionStatus"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Status: Disconnected"
-            android:fontFamily="@font/minecraftia_regular"
-            android:textSize="12sp"
-            android:textColor="@android:color/holo_red_light"/>
+            <TextView
+                android:id="@+id/tvPort"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/minecraftia_regular"
+                android:text="Port: 65535"
+                android:textColor="@color/black"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvFPS"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/minecraftia_regular"
+                android:text="FPS: 25"
+                android:textColor="@color/black"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvImageQuality"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/minecraftia_regular"
+                android:text="Image Quality: 0.2"
+                android:textColor="@color/black"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/tvConnectionStatus"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/minecraftia_regular"
+                android:text="Status: Disconnected"
+                android:textColor="@android:color/holo_red_light"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btnConnect"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:layout_gravity="center|center_vertical"
+            android:background="@android:color/transparent"
+            android:foreground="?attr/selectableItemBackground"
+            android:scaleType="fitXY"
+            android:src="@drawable/minecraft_frame_right_arrow"
+            android:translationX="0dp" />
     </LinearLayout>
-    <ImageButton
-        android:id="@+id/btnConnect"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:background="@android:color/transparent"
-        android:scaleType="fitXY"
-        android:src="@drawable/minecraft_frame_right_arrow"
-        android:translationX="0dp"
-        android:foreground="?attr/selectableItemBackground"
-        android:layout_gravity="center|center_vertical"/>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/connection_info_line_height"
+        android:background="#000000" />
+
 </LinearLayout>

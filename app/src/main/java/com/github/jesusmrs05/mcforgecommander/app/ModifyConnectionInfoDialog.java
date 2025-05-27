@@ -11,6 +11,7 @@ import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 
@@ -19,7 +20,7 @@ import com.google.android.material.textfield.TextInputEditText;
 
 public class ModifyConnectionInfoDialog extends Dialog {
 
-    private TextInputEditText tietHost, tietPort, tietPass;
+    private TextInputEditText tietHost, tietPort, tietPass, tietFPS, tietImageQuality;
     private TextView btnCancel, btnAccept;
     private ScrollView scrollView;
     private ConnectionInfo connectionInfo;
@@ -40,9 +41,11 @@ public class ModifyConnectionInfoDialog extends Dialog {
             WindowManager.LayoutParams params = window.getAttributes();
             DisplayMetrics metrics = new DisplayMetrics();
             window.getWindowManager().getDefaultDisplay().getMetrics(metrics);
-            params.width = (metrics.widthPixels < 1100) ?
+            /*params.width = (metrics.widthPixels < 1100) ?
                     ViewGroup.LayoutParams.MATCH_PARENT :
-                    1150;
+                    1150;*/
+
+            params.width = ViewGroup.LayoutParams.MATCH_PARENT;
 
             params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
             window.setAttributes(params);
@@ -54,21 +57,37 @@ public class ModifyConnectionInfoDialog extends Dialog {
         tietHost = findViewById(R.id.tietHost);
         tietPort = findViewById(R.id.tietPort);
         tietPass = findViewById(R.id.tietPass);
+        tietFPS = findViewById(R.id.tietFPS);
+        tietImageQuality = findViewById(R.id.tietImageQuality);
 
         tietHost.setText(connectionInfo.getHost());
         tietPort.setText(String.valueOf(connectionInfo.getPort()));
         tietPass.setText(connectionInfo.getPassword());
+        tietFPS.setText(String.valueOf(connectionInfo.getFps()));
+        tietImageQuality.setText(String.valueOf(connectionInfo.getImageQuality()));
 
         btnCancel.setOnClickListener(v -> {
             dismiss();
         });
 
         btnAccept.setOnClickListener(v -> {
-            connectionInfo.setHost(tietHost.getText().toString());
-            connectionInfo.setPort(Integer.parseInt(tietPort.getText().toString()));
-            connectionInfo.setPassword(tietPass.getText().toString());
-            dismiss();
-            callback.run();
+            if (tietHost.getText().toString().isEmpty() || tietPort.getText().toString().isEmpty() || tietPass.getText().toString().isEmpty() || tietFPS.getText().toString().isEmpty() || tietImageQuality.getText().toString().isEmpty()) {
+                Toast.makeText(getContext(), "Please fill all fields", Toast.LENGTH_SHORT).show();
+            } else if (Integer.parseInt(tietPort.getText().toString()) < 1 || Integer.parseInt(tietPort.getText().toString()) > 65535) {
+                Toast.makeText(getContext(), "Port must be between 1 and 65535", Toast.LENGTH_SHORT).show();
+            } else if (Integer.parseInt(tietFPS.getText().toString()) < 1 || Integer.parseInt(tietFPS.getText().toString()) > 30) {
+                Toast.makeText(getContext(), "FPS must be between 1 and 30", Toast.LENGTH_SHORT).show();
+            } else if (Float.parseFloat(tietImageQuality.getText().toString()) < 0.1 || Float.parseFloat(tietImageQuality.getText().toString()) > 1) {
+                Toast.makeText(getContext(), "Image quality must be between 0.1 and 1", Toast.LENGTH_SHORT).show();
+            }else {
+                connectionInfo.setHost(tietHost.getText().toString());
+                connectionInfo.setPort(Integer.parseInt(tietPort.getText().toString()));
+                connectionInfo.setPassword(tietPass.getText().toString());
+                connectionInfo.setFps(Integer.parseInt(tietFPS.getText().toString()));
+                connectionInfo.setImageQuality(Float.parseFloat(tietImageQuality.getText().toString()));
+                dismiss();
+                callback.run();
+            }
         });
 
         setupAutoScrollOnFocus(tietHost);

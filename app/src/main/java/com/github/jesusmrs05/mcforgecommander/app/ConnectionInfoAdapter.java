@@ -44,6 +44,8 @@ public class ConnectionInfoAdapter extends RecyclerView.Adapter<ConnectionInfoAd
         ConnectionInfo connectionInfo = connectionInfos.get(position);
         holder.tvHost.setText("Host: " + connectionInfo.getHost());
         holder.tvPort.setText("Port: " + connectionInfo.getPort());
+        holder.tvFPS.setText("FPS: " + connectionInfo.getFps());
+        holder.tvImageQuality.setText("Image Quality: " + connectionInfo.getImageQuality());
         if(connectionInfo.isConnected()) {
             holder.tvConnectionStatus.setText("Status: Connected");
             holder.tvConnectionStatus.setTextColor(holder.tvConnectionStatus.getResources().getColor(android.R.color.holo_green_dark));
@@ -80,7 +82,7 @@ public class ConnectionInfoAdapter extends RecyclerView.Adapter<ConnectionInfoAd
                     });
                 };
                 Client client = Client.getInstance();
-                client.connect(connectionInfo.getHost(), connectionInfo.getPort(), connectionInfo.getPassword(), onConnect);
+                client.connect(connectionInfo.getHost(), connectionInfo.getPort(), connectionInfo.getPassword(), connectionInfo.getFps(), connectionInfo.getImageQuality(), onConnect);
             }
         });
         holder.itemView.setOnClickListener(v -> {
@@ -138,6 +140,8 @@ public class ConnectionInfoAdapter extends RecyclerView.Adapter<ConnectionInfoAd
     public static class ViewHolder extends RecyclerView.ViewHolder {
         private TextView tvHost;
         private TextView tvPort;
+        private TextView tvFPS;
+        private TextView tvImageQuality;
         private TextView tvConnectionStatus;
         private ImageButton btnConnect;
 
@@ -145,6 +149,8 @@ public class ConnectionInfoAdapter extends RecyclerView.Adapter<ConnectionInfoAd
             super(itemView);
             tvHost = itemView.findViewById(R.id.tvHost);
             tvPort = itemView.findViewById(R.id.tvPort);
+            tvFPS = itemView.findViewById(R.id.tvFPS);
+            tvImageQuality = itemView.findViewById(R.id.tvImageQuality);
             tvConnectionStatus = itemView.findViewById(R.id.tvConnectionStatus);
             btnConnect = itemView.findViewById(R.id.btnConnect);
         }

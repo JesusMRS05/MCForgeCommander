@@ -9,16 +9,22 @@ public class ConnectionInfo {
     private int port = 0;
     @Expose
     private String password = "";
+    @Expose
+    private int fps = 25;
+    @Expose
+    private float imageQuality = 0.2f;
     private boolean connected = false;
 
     public ConnectionInfo() {
     }
 
-    public ConnectionInfo(String host, int port, String password, boolean connected) {
+    public ConnectionInfo(String host, int port, String password, boolean connected, int fps, float imageQuality) {
         this.host = host;
         this.port = port;
         this.password = password;
         this.connected = connected;
+        this.fps = fps;
+        this.imageQuality = imageQuality;
     }
 
     public String getHost() {
@@ -51,5 +57,21 @@ public class ConnectionInfo {
 
     public void setConnected(boolean connected) {
         this.connected = connected;
+    }
+
+    public int getFps() {
+        return fps;
+    }
+
+    public void setFps(int fps) {
+        this.fps = fps;
+    }
+
+    public float getImageQuality() {
+        return imageQuality;
+    }
+
+    public void setImageQuality(float imageQuality) {
+        this.imageQuality = imageQuality;
     }
 }
