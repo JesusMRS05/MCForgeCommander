@@ -23,6 +23,7 @@ import android.util.SparseBooleanArray;
 import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
@@ -57,8 +58,10 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.Socket;
+import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -94,6 +97,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int JUMP_INTERVAL_MS = 250;          // auto-fire del salto
     private final SparseArray<Runnable> jumpTasks = new SparseArray<>();
     private ImageButton[] invisibleButtonsDuringGUI;
+    private boolean guiOverlayActive = false;
+    private final HashSet<ImageButton> blockedDuringGUI = new HashSet<>();
 
 
     @Override
@@ -202,7 +207,9 @@ public class MainActivity extends AppCompatActivity {
                 btnRight, btnBottomLeft, btnBottom, btnBottomRight, btnShift, btnJump, btnLeftClick,
                 btnRightClick, hotbarButtons[0], hotbarButtons[1], hotbarButtons[2], hotbarButtons[3],
                 hotbarButtons[4], hotbarButtons[5], hotbarButtons[6], hotbarButtons[7], hotbarButtons[8]};
+        blockedDuringGUI.addAll(Arrays.asList(invisibleButtonsDuringGUI));
 
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         //client.connect("192.168.1.22", 6000, "s1C$BlmPGw4Fc87R");
     }
 
@@ -648,6 +655,11 @@ public class MainActivity extends AppCompatActivity {
                 btnLeft, btnShift, btnRight,
                 btnBottomLeft, btnBottom, btnBottomRight, btnJump, btnLeftClick, btnRightClick
         }) {
+
+            if (guiOverlayActive && blockedDuringGUI.contains(b)) {
+                continue;                          // ← ignorar mientras la GUI tapa
+            }
+
             Rect r = new Rect();
             b.getGlobalVisibleRect(r);          // rectángulo absoluto
             if (r.contains((int) rawX, (int) rawY)) {
@@ -673,16 +685,43 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void changeLayout(ServerPacket.GUIStatus guiStatus) {
-        if (guiStatus == ServerPacket.GUIStatus.NONE) {
-            for (ImageButton imageButton : invisibleButtonsDuringGUI) {
-                if (imageButton != btnTopLeft && imageButton != btnTopRight && imageButton != btnBottomLeft && imageButton != btnBottomRight) {
-                    imageButton.setVisibility(View.VISIBLE);
+
+        boolean openingGUI = (guiStatus != ServerPacket.GUIStatus.NONE);
+        guiOverlayActive = openingGUI;
+
+        int vis = openingGUI ? View.INVISIBLE : View.VISIBLE;
+        for (ImageButton b : invisibleButtonsDuringGUI) {
+            // las esquinas se vuelven invisibles, pero se quedan “enabled”
+            if (b != btnTopLeft && b != btnTopRight && b != btnBottomLeft && b != btnBottomRight) {
+                b.setVisibility(vis);
+            }
+        }
+
+        /* --- si se está abriendo la GUI, liberamos controles activos --- */
+        if (openingGUI) {
+            for (int i = 0; i < activeButtons.size(); i++) {
+                int pid = activeButtons.keyAt(i);
+                ImageButton b = activeButtons.valueAt(i);
+
+                if (blockedDuringGUI.contains(b)) {
+                    // suelta direcciones
+                    updateDirections(b, null);
+
+                    // cancela tareas (left/right/jump)
+                    Runnable r = holdTasks.get(pid);
+                    if (r != null) holdHandler.removeCallbacks(r);
+                    r = rightTasks.get(pid);
+                    if (r != null) holdHandler.removeCallbacks(r);
+                    r = jumpTasks.get(pid);
+                    if (r != null) holdHandler.removeCallbacks(r);
                 }
             }
-        } else {
-            for (ImageButton imageButton : invisibleButtonsDuringGUI) {
-                imageButton.setVisibility(View.INVISIBLE);
-            }
+            activeButtons.clear();
+            leftClickHeld.clear();
+            holdTasks.clear();
+            rightTasks.clear();
+            jumpTasks.clear();
+            refreshCorners();
         }
     }
 }
