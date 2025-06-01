@@ -498,6 +498,8 @@ public class MainActivity extends AppCompatActivity {
                     if (now - lastShiftClickTime < 300) {
                         isShiftLocked = !isShiftLocked;
                         btn.setPressed(isShiftLocked);
+                        client.enqueueCommand(new Command(
+                                Instruction.TOGGLE_SNEAKING, Boolean.valueOf(isShiftLocked)));
                         Log.d("DPAD_DEBUG", "DOBLE CLIC en Shift");
                         lastShiftClickTime = 0;
                     } else {

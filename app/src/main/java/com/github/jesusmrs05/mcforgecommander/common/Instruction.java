@@ -18,4 +18,5 @@ public enum Instruction implements Serializable {
     SET_JPEG_QUALITY,
     LEFT_CLICK,
     RIGHT_CLICK,
+    TOGGLE_SNEAKING;
 }
