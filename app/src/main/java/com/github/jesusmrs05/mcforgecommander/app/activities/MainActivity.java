@@ -87,6 +87,10 @@ public class MainActivity extends AppCompatActivity {
     private final SparseArray<Runnable> holdTasks = new SparseArray<>();
     // configurable
     private static final int HOLD_INTERVAL_MS = 40;
+    private static final int RIGHT_INTERVAL_MS = 300;
+    // tareas periódicas para cada dedo que está sobre RightClick
+    private final SparseArray<Runnable> rightTasks = new SparseArray<>();
+
 
 
     @Override
@@ -366,7 +370,24 @@ public class MainActivity extends AppCompatActivity {
                 boolean fromPreview = (btn == null);
                 startedOnPreview.put(pointerId, fromPreview);
 
-                if (btn == btnLeftClick && !fromPreview) {
+                if (btn == btnRightClick && !fromPreview) {
+
+                    // primer disparo inmediato
+                    client.enqueueCommand(new Command(Instruction.RIGHT_CLICK, (Serializable) null));
+
+                    /* tarea que repetirá cada RIGHT_INTERVAL_MS */
+                    Runnable task = new Runnable() {
+                        @Override public void run() {
+                            if (activeButtons.get(pointerId) == btnRightClick) {   // sigue encima
+                                client.enqueueCommand(
+                                        new Command(Instruction.RIGHT_CLICK, (Serializable) null));
+                                holdHandler.postDelayed(this, RIGHT_INTERVAL_MS);
+                            }
+                        }
+                    };
+                    rightTasks.put(pointerId, task);
+                    holdHandler.postDelayed(task, RIGHT_INTERVAL_MS);
+                } else if (btn == btnLeftClick && !fromPreview) {
 
                     // 1) click inicial  -----------------------------
                     client.enqueueCommand(new Command(Instruction.LEFT_CLICK, Boolean.FALSE));
@@ -421,9 +442,7 @@ public class MainActivity extends AppCompatActivity {
                         if (prev != null && prev != btnShift && prev != btnJump) {
                             prev.setPressed(false);
                             Log.d("DPAD_DEBUG", "Dedo QUITADO de: " + getButtonName(prev));
-                        }
-
-                        if (prev == btnLeftClick && now != btnLeftClick) {
+                        } else if (prev == btnLeftClick && now != btnLeftClick) {
                             Runnable t = holdTasks.get(id);
                             if (t != null) {
                                 holdHandler.removeCallbacks(t);
@@ -442,6 +461,12 @@ public class MainActivity extends AppCompatActivity {
                         } else if (now != null && now != btnShift && now != btnJump) {
                             now.setPressed(true);
                             Log.d("DPAD_DEBUG", "Dedo ENCIMA de: " + getButtonName(now));
+                        } else if (prev == btnRightClick && now != btnRightClick) {      // dedo sale del botón
+                            Runnable t = rightTasks.get(id);
+                            if (t != null) {
+                                holdHandler.removeCallbacks(t);
+                                rightTasks.remove(id);
+                            }
                         }
 
                         updateDirections(prev, now);
@@ -498,6 +523,11 @@ public class MainActivity extends AppCompatActivity {
                     holdTasks.remove(pointerId);
                 }
                 leftClickHeld.delete(pointerId);
+                Runnable rt = rightTasks.get(pointerId);
+                if (rt != null) {
+                    holdHandler.removeCallbacks(rt);
+                    rightTasks.remove(pointerId);
+                }
                 refreshCorners();
 
                 /* Pantalla remota: UP */
@@ -574,7 +604,7 @@ public class MainActivity extends AppCompatActivity {
         for (ImageButton b : new ImageButton[]{
                 btnTopLeft, btnTop, btnTopRight,
                 btnLeft, btnShift, btnRight,
-                btnBottomLeft, btnBottom, btnBottomRight, btnJump, btnLeftClick
+                btnBottomLeft, btnBottom, btnBottomRight, btnJump, btnLeftClick, btnRightClick
         }) {
             Rect r = new Rect();
             b.getGlobalVisibleRect(r);          // rectángulo absoluto
