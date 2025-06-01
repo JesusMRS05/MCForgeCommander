@@ -1,5 +1,6 @@
 package com.github.jesusmrs05.mcforgecommander.app.activities;
 
+import android.app.AlertDialog;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -8,6 +9,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.media.Image;
 import android.os.Bundle;
@@ -21,8 +23,10 @@ import android.util.Log;
 import android.util.SparseArray;
 import android.util.SparseBooleanArray;
 import android.util.TypedValue;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
@@ -99,6 +103,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageButton[] invisibleButtonsDuringGUI;
     private boolean guiOverlayActive = false;
     private final HashSet<ImageButton> blockedDuringGUI = new HashSet<>();
+    private EditText hiddenInput = null;
 
 
     @Override
@@ -178,8 +183,60 @@ public class MainActivity extends AppCompatActivity {
         });
         btnChat.setOnClickListener(v -> {
             isChatOpen = !isChatOpen;
-            client.enqueueCommand(new Command(Instruction.PRESS_CHAT_KEY, Boolean.valueOf(isChatOpen)));
+
+            if (isChatOpen) {
+                client.enqueueCommand(new Command(Instruction.PRESS_CHAT_KEY, Boolean.valueOf(isChatOpen)));
+                ViewGroup root = (ViewGroup) findViewById(android.R.id.content);
+
+                hiddenInput = new EditText(this);
+                hiddenInput.setLayoutParams(new ViewGroup.LayoutParams(1, 1));
+                hiddenInput.setX(10_000);
+                hiddenInput.setY(10_000);
+                hiddenInput.setAlpha(0f);
+                hiddenInput.setBackground(null);
+                hiddenInput.setTextColor(Color.TRANSPARENT);
+                hiddenInput.setCursorVisible(false);
+
+                /* ¡ESTO ES IMPRESCINDIBLE!  */
+                hiddenInput.setFocusable(true);
+                hiddenInput.setFocusableInTouchMode(true);
+
+                hiddenInput.setImeOptions(EditorInfo.IME_ACTION_SEND);
+                hiddenInput.setSingleLine(true);
+                hiddenInput.setOnEditorActionListener((v1, actionId, event) -> {
+                    boolean send =
+                            actionId == EditorInfo.IME_ACTION_SEND ||
+                                    actionId == EditorInfo.IME_ACTION_DONE ||
+                                    (event != null &&
+                                            event.getKeyCode() == KeyEvent.KEYCODE_ENTER &&
+                                            event.getAction() == KeyEvent.ACTION_DOWN);
+
+                    if (send) {
+                        client.enqueueCommand(new Command(Instruction.SEND_MESSAGE_TO_CHAT, hiddenInput.getText().toString()));
+                        client.enqueueCommand(new Command(Instruction.PRESS_CHAT_KEY, Boolean.valueOf(!isChatOpen)));
+                        cerrarCaptura(root);
+                        return true;
+                    }
+                    return false;
+                });
+
+                root.addView(hiddenInput);
+
+                /* Pedimos foco y mostramos el IME **cuando la vista ya está añadida** */
+                hiddenInput.post(() -> {
+                    hiddenInput.requestFocus();
+                    InputMethodManager imm =
+                            (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+                    if (imm != null) {
+                        imm.showSoftInput(hiddenInput, InputMethodManager.SHOW_FORCED);
+                    }
+                });
+            } else {
+                client.enqueueCommand(new Command(Instruction.PRESS_CHAT_KEY, Boolean.valueOf(isChatOpen)));
+            }
         });
+
+
         btnEsc.setOnClickListener(v -> {
             isEscOpen = !isEscOpen;
             client.enqueueCommand(new Command(Instruction.PRESS_MENU_KEY, Boolean.valueOf(isEscOpen)));
@@ -211,6 +268,31 @@ public class MainActivity extends AppCompatActivity {
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         //client.connect("192.168.1.22", 6000, "s1C$BlmPGw4Fc87R");
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (isChatOpen) {
+            ViewGroup root = (ViewGroup) findViewById(android.R.id.content);
+            Log.d("Jesus", "Usuario canceló");
+            cerrarCaptura(root);            // no llamamos a super.onBackPressed()
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    /** Limpia EditText, oculta teclado y restablece flag. */
+    private void cerrarCaptura(ViewGroup root) {
+        if (hiddenInput != null) {
+            InputMethodManager imm =
+                    (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) {
+                imm.hideSoftInputFromWindow(hiddenInput.getWindowToken(), 0);
+            }
+            root.removeView(hiddenInput);
+            hiddenInput = null;
+        }
+        isChatOpen = false;
     }
 
     private boolean isActive(ImageButton b) {
