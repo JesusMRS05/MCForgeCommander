@@ -40,6 +40,7 @@ public class ServerPacket implements Serializable {
     public enum GUIStatus implements Serializable {
         CAMERA,
         MAIN_MENU,
-        OTHER;
+        OTHER,
+        NONE;
     }
 }

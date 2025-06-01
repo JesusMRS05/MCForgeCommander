@@ -269,4 +269,8 @@ public class Client {
     public Command takeCommand() throws InterruptedException {
         return commandQueue.take();
     }
+
+    public static WeakReference<MainActivity> getMainActivityRef() {
+        return mainActivityRef;
+    }
 }

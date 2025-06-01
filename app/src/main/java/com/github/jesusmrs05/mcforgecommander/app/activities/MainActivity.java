@@ -9,6 +9,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
+import android.media.Image;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -92,6 +93,7 @@ public class MainActivity extends AppCompatActivity {
     private final SparseArray<Runnable> rightTasks = new SparseArray<>();
     private static final int JUMP_INTERVAL_MS = 250;          // auto-fire del salto
     private final SparseArray<Runnable> jumpTasks = new SparseArray<>();
+    private ImageButton[] invisibleButtonsDuringGUI;
 
 
     @Override
@@ -195,6 +197,12 @@ public class MainActivity extends AppCompatActivity {
                 btnBottomLeft, btnBottomRight}) {
             c.setVisibility(View.INVISIBLE);        // ocultos por defecto
         }
+
+        invisibleButtonsDuringGUI = new ImageButton[]{btnTopLeft, btnTop, btnTopRight, btnLeft,
+                btnRight, btnBottomLeft, btnBottom, btnBottomRight, btnShift, btnJump, btnLeftClick,
+                btnRightClick, hotbarButtons[0], hotbarButtons[1], hotbarButtons[2], hotbarButtons[3],
+                hotbarButtons[4], hotbarButtons[5], hotbarButtons[6], hotbarButtons[7], hotbarButtons[8]};
+
         //client.connect("192.168.1.22", 6000, "s1C$BlmPGw4Fc87R");
     }
 
@@ -662,5 +670,19 @@ public class MainActivity extends AppCompatActivity {
         if (button == btnBottom) return "Abajo";
         if (button == btnBottomRight) return "Abajo-Derecha";
         return "Desconocido";
+    }
+
+    public void changeLayout(ServerPacket.GUIStatus guiStatus) {
+        if (guiStatus == ServerPacket.GUIStatus.NONE) {
+            for (ImageButton imageButton : invisibleButtonsDuringGUI) {
+                if (imageButton != btnTopLeft && imageButton != btnTopRight && imageButton != btnBottomLeft && imageButton != btnBottomRight) {
+                    imageButton.setVisibility(View.VISIBLE);
+                }
+            }
+        } else {
+            for (ImageButton imageButton : invisibleButtonsDuringGUI) {
+                imageButton.setVisibility(View.INVISIBLE);
+            }
+        }
     }
 }
