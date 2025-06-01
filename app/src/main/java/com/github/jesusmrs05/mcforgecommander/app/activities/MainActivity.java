@@ -10,6 +10,8 @@ import android.graphics.Rect;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Layout;
 import android.text.StaticLayout;
 import android.text.TextPaint;
@@ -74,10 +76,18 @@ public class MainActivity extends AppCompatActivity {
     private List<ConnectionInfo> connectionInfos;
     private RecyclerView rvConnections;
     private ConnectionInfoAdapter connectionInfoAdapter;
-    private ImageButton btnTopLeft, btnTop, btnTopRight, btnLeft, btnShift, btnRight, btnBottomLeft, btnBottom, btnBottomRight, btnInventory, btnChat, btnEsc, btnJump;
+    private ImageButton btnTopLeft, btnTop, btnTopRight, btnLeft, btnShift, btnRight, btnBottomLeft, btnBottom, btnBottomRight, btnInventory, btnChat, btnEsc, btnJump, btnLeftClick, btnRightClick, btnJumpClick;
     private boolean isChatOpen, isEscOpen, isInventoryOpen;
     private final SparseBooleanArray startedOnPreview = new SparseBooleanArray();
     private ImageButton[] hotbarButtons = new ImageButton[9];
+    // memoriza si ya mandamos el "true" para cada dedo que está en LeftClick
+    private final SparseBooleanArray leftClickHeld = new SparseBooleanArray();
+    // --- Left-click «hold» -------------------------------------------
+    private final Handler holdHandler = new Handler(Looper.getMainLooper());
+    private final SparseArray<Runnable> holdTasks = new SparseArray<>();
+    // configurable
+    private static final int HOLD_INTERVAL_MS = 40;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -118,6 +128,8 @@ public class MainActivity extends AppCompatActivity {
         btnBottom = findViewById(R.id.btnBottom);
         btnBottomRight = findViewById(R.id.btnBottomRight);
         btnAddConnection = findViewById(R.id.btnAddConnection);
+        btnLeftClick = findViewById(R.id.btnLeftClick);
+        btnRightClick = findViewById(R.id.btnRightClick);
         hotbarButtons[0] = findViewById(R.id.btn1);
         hotbarButtons[1] = findViewById(R.id.btn2);
         hotbarButtons[2] = findViewById(R.id.btn3);
@@ -354,11 +366,33 @@ public class MainActivity extends AppCompatActivity {
                 boolean fromPreview = (btn == null);
                 startedOnPreview.put(pointerId, fromPreview);
 
-                if (btn == btnJump && !fromPreview) {          // ← sólo taps directos
+                if (btn == btnLeftClick && !fromPreview) {
+
+                    // 1) click inicial  -----------------------------
+                    client.enqueueCommand(new Command(Instruction.LEFT_CLICK, Boolean.FALSE));
+
+                    // 2) tarea que cada 40 ms mandará FALSE mientras
+                    //    el dedo siga en el botón
+                    Runnable task = new Runnable() {
+                        @Override public void run() {
+
+                            // ¿sigue el mismo dedo dentro de LeftClick?
+                            if (activeButtons.get(pointerId) == btnLeftClick) {
+
+                                client.enqueueCommand(
+                                        new Command(Instruction.LEFT_CLICK, Boolean.TRUE));
+
+                                // repetir
+                                holdHandler.postDelayed(this, HOLD_INTERVAL_MS);
+                            }
+                        }
+                    };
+                    holdTasks.put(pointerId, task);
+                    holdHandler.postDelayed(task, HOLD_INTERVAL_MS);
+                } else if (btn == btnJump && !fromPreview) {          // ← sólo taps directos
                     client.enqueueCommand(new Command(
                             Instruction.PRESS_JUMP_KEY, (Serializable) null));
-                }
-                else if (btn != null && btn != btnShift) {
+                } else if (btn != null && btn != btnShift) {
                     btn.setPressed(true);
                     Log.d("DPAD_DEBUG", "Dedo ENCIMA de: " + getButtonName(btn));
                     updateDirections(null, btn);
@@ -389,12 +423,23 @@ public class MainActivity extends AppCompatActivity {
                             Log.d("DPAD_DEBUG", "Dedo QUITADO de: " + getButtonName(prev));
                         }
 
-                        if (now == btnJump && !startedOnPreview.get(id, false)) {
+                        if (prev == btnLeftClick && now != btnLeftClick) {
+                            Runnable t = holdTasks.get(id);
+                            if (t != null) {
+                                holdHandler.removeCallbacks(t);
+                                holdTasks.remove(id);
+                            }
+                        } else
+                        // ¿el dedo sigue encima de LeftClick y aún no mandamos el TRUE?
+                        if (now == btnLeftClick && !leftClickHeld.get(id, true)) {
+                            client.enqueueCommand(new Command(
+                                    Instruction.LEFT_CLICK, Boolean.TRUE));
+                            leftClickHeld.put(id, true);                  // ya está enviado
+                        } else if (now == btnJump && !startedOnPreview.get(id, false)) {
                             // Solo si el dedo NO empezó sobre la preview
                             client.enqueueCommand(new Command(
                                     Instruction.PRESS_JUMP_KEY, (Serializable) null));
-                        }
-                        else if (now != null && now != btnShift && now != btnJump) {
+                        } else if (now != null && now != btnShift && now != btnJump) {
                             now.setPressed(true);
                             Log.d("DPAD_DEBUG", "Dedo ENCIMA de: " + getButtonName(now));
                         }
@@ -447,6 +492,12 @@ public class MainActivity extends AppCompatActivity {
                 }
                 activeButtons.remove(pointerId);
                 startedOnPreview.delete(pointerId);
+                Runnable t = holdTasks.get(pointerId);
+                if (t != null) {
+                    holdHandler.removeCallbacks(t);
+                    holdTasks.remove(pointerId);
+                }
+                leftClickHeld.delete(pointerId);
                 refreshCorners();
 
                 /* Pantalla remota: UP */
@@ -523,7 +574,7 @@ public class MainActivity extends AppCompatActivity {
         for (ImageButton b : new ImageButton[]{
                 btnTopLeft, btnTop, btnTopRight,
                 btnLeft, btnShift, btnRight,
-                btnBottomLeft, btnBottom, btnBottomRight, btnJump
+                btnBottomLeft, btnBottom, btnBottomRight, btnJump, btnLeftClick
         }) {
             Rect r = new Rect();
             b.getGlobalVisibleRect(r);          // rectángulo absoluto
