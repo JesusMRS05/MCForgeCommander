@@ -90,7 +90,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int RIGHT_INTERVAL_MS = 300;
     // tareas periódicas para cada dedo que está sobre RightClick
     private final SparseArray<Runnable> rightTasks = new SparseArray<>();
-
+    private static final int JUMP_INTERVAL_MS = 250;          // auto-fire del salto
+    private final SparseArray<Runnable> jumpTasks = new SparseArray<>();
 
 
     @Override
@@ -143,7 +144,7 @@ public class MainActivity extends AppCompatActivity {
         hotbarButtons[6] = findViewById(R.id.btn7);
         hotbarButtons[7] = findViewById(R.id.btn8);
         hotbarButtons[8] = findViewById(R.id.btn9);
-        for(int i = 0; i < hotbarButtons.length; i++) {
+        for (int i = 0; i < hotbarButtons.length; i++) {
             final int index = i;
             hotbarButtons[i].setOnClickListener(v -> {
                 client.enqueueCommand(new Command(Instruction.PRESS_CERTAIN_HOTBAR_KEY, Integer.valueOf(index)));
@@ -205,13 +206,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void refreshCorners() {
-        boolean top    = isActive(btnTop);
+        boolean top = isActive(btnTop);
         boolean bottom = isActive(btnBottom);
-        boolean left   = isActive(btnLeft);
-        boolean right  = isActive(btnRight);
+        boolean left = isActive(btnLeft);
+        boolean right = isActive(btnRight);
 
         btnTopLeft.setVisibility(
-                (isActive(btnTopLeft)  || top || left) ? View.VISIBLE : View.INVISIBLE);
+                (isActive(btnTopLeft) || top || left) ? View.VISIBLE : View.INVISIBLE);
         btnTopRight.setVisibility(
                 (isActive(btnTopRight) || top || right) ? View.VISIBLE : View.INVISIBLE);
         btnBottomLeft.setVisibility(
@@ -377,7 +378,8 @@ public class MainActivity extends AppCompatActivity {
 
                     /* tarea que repetirá cada RIGHT_INTERVAL_MS */
                     Runnable task = new Runnable() {
-                        @Override public void run() {
+                        @Override
+                        public void run() {
                             if (activeButtons.get(pointerId) == btnRightClick) {   // sigue encima
                                 client.enqueueCommand(
                                         new Command(Instruction.RIGHT_CLICK, (Serializable) null));
@@ -395,7 +397,8 @@ public class MainActivity extends AppCompatActivity {
                     // 2) tarea que cada 40 ms mandará FALSE mientras
                     //    el dedo siga en el botón
                     Runnable task = new Runnable() {
-                        @Override public void run() {
+                        @Override
+                        public void run() {
 
                             // ¿sigue el mismo dedo dentro de LeftClick?
                             if (activeButtons.get(pointerId) == btnLeftClick) {
@@ -410,9 +413,27 @@ public class MainActivity extends AppCompatActivity {
                     };
                     holdTasks.put(pointerId, task);
                     holdHandler.postDelayed(task, HOLD_INTERVAL_MS);
-                } else if (btn == btnJump && !fromPreview) {          // ← sólo taps directos
+                } else if (btn == btnJump && !fromPreview) {
+
+                    // primer salto inmediato con timestamp
                     client.enqueueCommand(new Command(
-                            Instruction.PRESS_JUMP_KEY, (Serializable) null));
+                            Instruction.PRESS_JUMP_KEY,
+                            Long.valueOf(System.currentTimeMillis())));
+
+                    /* tarea que seguirá enviando saltos cada 250 ms */
+                    Runnable taskJump = new Runnable() {
+                        @Override
+                        public void run() {
+                            if (activeButtons.get(pointerId) == btnJump) {     // aún encima
+                                client.enqueueCommand(new Command(
+                                        Instruction.PRESS_JUMP_KEY,
+                                        Long.valueOf(System.currentTimeMillis())));
+                                holdHandler.postDelayed(this, JUMP_INTERVAL_MS);
+                            }
+                        }
+                    };
+                    jumpTasks.put(pointerId, taskJump);
+                    holdHandler.postDelayed(taskJump, JUMP_INTERVAL_MS);
                 } else if (btn != null && btn != btnShift) {
                     btn.setPressed(true);
                     Log.d("DPAD_DEBUG", "Dedo ENCIMA de: " + getButtonName(btn));
@@ -449,25 +470,31 @@ public class MainActivity extends AppCompatActivity {
                                 holdTasks.remove(id);
                             }
                         } else
-                        // ¿el dedo sigue encima de LeftClick y aún no mandamos el TRUE?
-                        if (now == btnLeftClick && !leftClickHeld.get(id, true)) {
-                            client.enqueueCommand(new Command(
-                                    Instruction.LEFT_CLICK, Boolean.TRUE));
-                            leftClickHeld.put(id, true);                  // ya está enviado
-                        } else if (now == btnJump && !startedOnPreview.get(id, false)) {
-                            // Solo si el dedo NO empezó sobre la preview
-                            client.enqueueCommand(new Command(
-                                    Instruction.PRESS_JUMP_KEY, (Serializable) null));
-                        } else if (now != null && now != btnShift && now != btnJump) {
-                            now.setPressed(true);
-                            Log.d("DPAD_DEBUG", "Dedo ENCIMA de: " + getButtonName(now));
-                        } else if (prev == btnRightClick && now != btnRightClick) {      // dedo sale del botón
-                            Runnable t = rightTasks.get(id);
-                            if (t != null) {
-                                holdHandler.removeCallbacks(t);
-                                rightTasks.remove(id);
+                            // ¿el dedo sigue encima de LeftClick y aún no mandamos el TRUE?
+                            if (now == btnLeftClick && !leftClickHeld.get(id, true)) {
+                                client.enqueueCommand(new Command(
+                                        Instruction.LEFT_CLICK, Boolean.TRUE));
+                                leftClickHeld.put(id, true);                  // ya está enviado
+                            } else if (now == btnJump && !startedOnPreview.get(id, false)) {
+                                // Solo si el dedo NO empezó sobre la preview
+                                client.enqueueCommand(new Command(
+                                        Instruction.PRESS_JUMP_KEY, (Serializable) null));
+                            } else if (now != null && now != btnShift && now != btnJump) {
+                                now.setPressed(true);
+                                Log.d("DPAD_DEBUG", "Dedo ENCIMA de: " + getButtonName(now));
+                            } else if (prev == btnRightClick && now != btnRightClick) {      // dedo sale del botón
+                                Runnable t = rightTasks.get(id);
+                                if (t != null) {
+                                    holdHandler.removeCallbacks(t);
+                                    rightTasks.remove(id);
+                                }
+                            } else if (prev == btnJump && now != btnJump) {
+                                Runnable jt = jumpTasks.get(id);
+                                if (jt != null) {
+                                    holdHandler.removeCallbacks(jt);
+                                    jumpTasks.remove(id);
+                                }
                             }
-                        }
 
                         updateDirections(prev, now);
                         activeButtons.put(id, now);
@@ -529,6 +556,11 @@ public class MainActivity extends AppCompatActivity {
                 if (rt != null) {
                     holdHandler.removeCallbacks(rt);
                     rightTasks.remove(pointerId);
+                }
+                Runnable jt = jumpTasks.get(pointerId);
+                if (jt != null) {
+                    holdHandler.removeCallbacks(jt);
+                    jumpTasks.remove(pointerId);
                 }
                 refreshCorners();
 
